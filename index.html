@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reminder App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.2.4/dist/cdn.min.js" defer></script>
+</head>
+<body x-data="reminderApp()" x-init="init()">
+
+    <div class="container mt-4">
+        <h2 class="mb-4">Reminder App</h2>
+
+        <!-- Form to add new reminder -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Add New Reminder</h4>
+                <form @submit.prevent="addReminder">
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" id="phoneNumber" x-model="newReminder.phoneNumber" placeholder="Enter phone number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentDate" class="form-label">Payment Date</label>
+                        <input type="date" class="form-control" id="paymentDate" x-model="newReminder.paymentDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reminderTime" class="form-label">Reminder Time</label>
+                        <input type="time" class="form-control" id="reminderTime" x-model="newReminder.reminderTime" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" x-model="newReminder.message" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Reminder</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Show QR Code if WhatsApp not logged in -->
+        <div class="card mb-4" x-show="qrCode">
+            <div class="card-body">
+                <h4 class="card-title">Scan QR Code to Login to WhatsApp</h4>
+                <img :src="qrCode" alt="QR Code" class="img-fluid">
+            </div>
+        </div>
+
+        <!-- Display Reminders -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Reminders</h4>
+                <ul class="list-group">
+                    <template x-for="(reminder, index) in paginatedReminders" :key="reminder.id">
+                        <li class="list-group-item">
+                            <strong>Phone:</strong> <span x-text="reminder.phoneNumber"></span><br>
+                            <strong>Date:</strong> <span x-text="new Date(reminder.reminderDateTime).toLocaleString()"></span><br>
+                            <strong>Message:</strong> <span x-text="reminder.message"></span>
+                        </li>
+                    </template>
+                </ul>
+
+                <!-- Pagination for Reminders -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mt-3">
+                        <li class="page-item" :class="{ 'disabled': reminderPage === 1 }">
+                            <a class="page-link" href="#" @click.prevent="prevReminderPage">Previous</a>
+                        </li>
+                        <li class="page-item" :class="{ 'disabled': reminderPage === totalReminderPages }">
+                            <a class="page-link" href="#" @click.prevent="nextReminderPage">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Display Sent Reminders -->
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Sent Reminders</h4>
+                <ul class="list-group">
+                    <template x-for="(sentReminder, index) in paginatedSentReminders" :key="sentReminder.id">
+                        <li class="list-group-item">
+                            <strong>Phone:</strong> <span x-text="sentReminder.phoneNumber"></span><br>
+                            <strong>Date:</strong> <span x-text="new Date(sentReminder.reminderDateTime).toLocaleString()"></span><br>
+                            <strong>Message:</strong> <span x-text="sentReminder.message"></span>
+                        </li>
+                    </template>
+                </ul>
+
+                <!-- Pagination for Sent Reminders -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mt-3">
+                        <li class="page-item" :class="{ 'disabled': sentReminderPage === 1 }">
+                            <a class="page-link" href="#" @click.prevent="prevSentReminderPage">Previous</a>
+                        </li>
+                        <li class="page-item" :class="{ 'disabled': sentReminderPage === totalSentReminderPages }">
+                            <a class="page-link" href="#" @click.prevent="nextSentReminderPage">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function reminderApp() {
+            return {
+                // State
+                reminders: [],
+                sentReminders: [],
+                newReminder: {
+                    phoneNumber: '',
+                    paymentDate: '',
+                    reminderTime: '',
+                    message: ''
+                },
+                reminderPage: 1,
+                reminderPerPage: 6,
+                sentReminderPage: 1,
+                sentReminderPerPage: 5,
+                qrCode: '',
+
+                // Methods
+                async init() {
+                    await this.fetchReminders();
+                    await this.fetchSentReminders();
+                    await this.checkWhatsAppStatus();
+                },
+
+                async fetchReminders() {
+                    try {
+                        const response = await fetch('http://localhost:3000/get-reminders');
+                        const data = await response.json();
+                        this.reminders = data.reminders;
+                    } catch (error) {
+                        console.error('Error fetching reminders:', error);
+                    }
+                },
+
+                async fetchSentReminders() {
+                    try {
+                        const response = await fetch('http://localhost:3000/get-sent-reminders');
+                        const data = await response.json();
+                        this.sentReminders = data.sentReminders;
+                    } catch (error) {
+                        console.error('Error fetching sent reminders:', error);
+                    }
+                },
+
+                async addReminder() {
+                    try {
+                        const response = await fetch('http://localhost:3000/schedule-reminder', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.newReminder)
+                        });
+                        const data = await response.json();
+                        if (response.ok) {
+                            this.reminders.push(data.reminder);
+                            this.resetForm();
+                        } else {
+                            console.error('Error adding reminder:', data.message);
+                        }
+                    } catch (error) {
+                        console.error('Error adding reminder:', error);
+                    }
+                },
+
+                resetForm() {
+                    this.newReminder = {
+                        phoneNumber: '',
+                        paymentDate: '',
+                        reminderTime: '',
+                        message: ''
+                    };
+                },
+
+                async checkWhatsAppStatus() {
+                    try {
+                        const response = await fetch('http://localhost:3000/qr-code');
+                        const data = await response.json();
+                        if (data.qrCode) {
+                            this.qrCode = `data:image/png;base64,${data.qrCode}`;
+                        }
+                    } catch (error) {
+                        console.error('Error checking WhatsApp status:', error);
+                    }
+                },
+
+                // Pagination for Reminders
+                get paginatedReminders() {
+                    const start = (this.reminderPage - 1) * this.reminderPerPage;
+                    return this.reminders.slice(start, start + this.reminderPerPage);
+                },
+
+                prevReminderPage() {
+                    if (this.reminderPage > 1) {
+                        this.reminderPage--;
+                    }
+                },
+
+                nextReminderPage() {
+                    if (this.reminderPage < this.totalReminderPages) {
+                        this.reminderPage++;
+                    }
+                },
+
+                get totalReminderPages() {
+                    return Math.ceil(this.reminders.length / this.reminderPerPage);
+                },
+
+                // Pagination for Sent Reminders
+                get paginatedSentReminders() {
+                    const start = (this.sentReminderPage - 1) * this.sentReminderPerPage;
+                    return this.sentReminders.slice(start, start + this.sentReminderPerPage);
+                },
+
+                prevSentReminderPage() {
+                    if (this.sentReminderPage > 1) {
+                        this.sentReminderPage--;
+                    }
+                },
+
+                nextSentReminderPage() {
+                    if (this.sentReminderPage < this.totalSentReminderPages) {
+                        this.sentReminderPage++;
+                    }
+                },
+
+                get totalSentReminderPages() {
+                    return Math.ceil(this.sentReminders.length / this.sentReminderPerPage);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
