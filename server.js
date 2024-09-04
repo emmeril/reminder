@@ -19,7 +19,6 @@ const whatsappClient = new Client({
   authStrategy: new LocalAuth(), // Menyimpan sesi secara lokal
 });
 
-
 // Menampilkan QR code untuk login
 whatsappClient.on("qr", (qr) => {
   console.log("QR code untuk login:");
