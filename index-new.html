@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengingat Pembayaran</title>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body>
+
+<div x-data="paymentReminder()">
+    <h1>Pengingat Pembayaran</h1>
+    <form @submit.prevent="scheduleReminder">
+        <label>
+            Nomor WhatsApp:
+            <input type="text" x-model="phoneNumber" placeholder="Contoh: 6281234567890" required>
+        </label>
+        <label>
+            Tanggal Pembayaran:
+            <input type="date" x-model="paymentDate" required>
+        </label>
+        <label>
+            Waktu Pengingat:
+            <input type="time" x-model="reminderTime" required>
+        </label>
+        <button type="submit" x-show="!isEditing">Setel Pengingat</button>
+        <button type="button" @click="updateReminder()" x-show="isEditing">Perbarui Pengingat</button>
+    </form>
+
+    <div x-show="message">
+        <p x-text="message"></p>
+    </div>
+
+    <!-- Daftar Pengingat -->
+    <h2>Jadwal Pengingat Terdaftar</h2>
+    <button @click="fetchReminders">Tampilkan Pengingat</button>
+    <ul>
+        <template x-for="reminder in reminders" :key="reminder.id">
+            <li>
+                <strong x-text="reminder.phoneNumber"></strong> - 
+                <span x-text="new Date(reminder.reminderDateTime).toLocaleString()"></span>
+                <button @click="editReminder(reminder)">Edit</button>
+                <button @click="deleteReminder(reminder.id)">Hapus</button>
+            </li>
+        </template>
+    </ul>
+</div>
+
+<script>
+function paymentReminder() {
+    return {
+        phoneNumber: '',
+        paymentDate: '',
+        reminderTime: '',
+        message: '',
+        reminders: [],
+        isEditing: false,
+        currentReminderId: null,
+
+        // Fungsi untuk menjadwalkan pengingat
+        scheduleReminder() {
+            fetch('http://localhost:3000/schedule-reminder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    phoneNumber: this.phoneNumber,
+                    paymentDate: this.paymentDate,
+                    reminderTime: this.reminderTime,
+                }),
+            })
+            .then(async (response) => {
+                if (!response.ok) {
+                    const errorMessage = await response.json();
+                    throw new Error(errorMessage.message || 'Terjadi kesalahan pada server');
+                }
+                return response.json();
+            })
+            .then(data => {
+                this.message = data.message;
+                this.fetchReminders(); // Refresh daftar pengingat setelah menambah pengingat baru
+            })
+            .catch(error => {
+                this.message = 'Terjadi kesalahan: ' + error.message;
+            });
