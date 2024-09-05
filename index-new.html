@@ -85,3 +85,85 @@ function paymentReminder() {
             .catch(error => {
                 this.message = 'Terjadi kesalahan: ' + error.message;
             });
+        },
+
+        // Fungsi untuk mengambil daftar pengingat
+        fetchReminders() {
+            fetch('http://localhost:3000/get-reminders')
+                .then(response => response.json())
+                .then(data => {
+                    this.reminders = data.reminders;
+                })
+                .catch(error => {
+                    console.error('Error mengambil pengingat:', error);
+                });
+        },
+
+        // Fungsi untuk mengedit pengingat
+        editReminder(reminder) {
+            this.phoneNumber = reminder.phoneNumber;
+            this.paymentDate = new Date(reminder.reminderDateTime).toISOString().split('T')[0];
+            this.reminderTime = new Date(reminder.reminderDateTime).toISOString().split('T')[1].slice(0, 5);
+            this.isEditing = true;
+            this.currentReminderId = reminder.id;
+        },
+
+        // Fungsi untuk memperbarui pengingat
+        updateReminder() {
+            fetch(`http://localhost:3000/update-reminder/${this.currentReminderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    phoneNumber: this.phoneNumber,
+                    paymentDate: this.paymentDate,
+                    reminderTime: this.reminderTime,
+                }),
+            })
+            .then(async (response) => {
+                if (!response.ok) {
+                    const errorMessage = await response.json();
+                    throw new Error(errorMessage.message || 'Terjadi kesalahan pada server');
+                }
+                return response.json();
+            })
+            .then(data => {
+                this.message = data.message;
+                this.fetchReminders(); // Refresh daftar pengingat setelah memperbarui pengingat
+                this.resetForm();
+            })
+            .catch(error => {
+                this.message = 'Terjadi kesalahan: ' + error.message;
+            });
+        },
+
+        // Fungsi untuk menghapus pengingat
+        deleteReminder(id) {
+            fetch(`http://localhost:3000/delete-reminder/${id}`, {
+                method: 'DELETE',
+            })
+            .then(response => response.json())
+            .then(data => {
+                this.message = data.message;
+                this.fetchReminders(); // Refresh daftar pengingat setelah menghapus pengingat
+            })
+            .catch(error => {
+                console.error('Error menghapus pengingat:', error);
+            });
+        },
+
+        // Fungsi untuk mereset form setelah edit atau tambah pengingat
+        resetForm() {
+            this.phoneNumber = '';
+            this.paymentDate = '';
+            this.reminderTime = '';
+            this.isEditing = false;
+            this.currentReminderId = null;
+        }
+    }
+}
+</script>
+
+</body>
+</html>
