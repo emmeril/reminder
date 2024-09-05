@@ -25,7 +25,6 @@ whatsappClient.on("qr", (qr) => {
   qrcode.generate(qr, { small: true });
 });
 
-
 // Saat klien siap digunakan
 whatsappClient.on("ready", () => {
   console.log("Bot WhatsApp siap digunakan dan terhubung ke akun WhatsApp.");
@@ -69,17 +68,27 @@ app.post("/schedule-reminder", (req, res) => {
   }
 });
 
-// Endpoint untuk mendapatkan daftar pengingat yang terdaftar
+// Endpoint untuk mendapatkan daftar pengingat yang terdaftar dengan pagination
 app.get("/get-reminders", (req, res) => {
   try {
-    res.json({ reminders });
+    const { page = 1, limit = 5 } = req.query;
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const startIndex = (pageNumber - 1) * limitNumber;
+    const endIndex = pageNumber * limitNumber;
+
+    const paginatedReminders = reminders.slice(startIndex, endIndex);
+
+    res.json({
+      page: pageNumber,
+      totalPages: Math.ceil(reminders.length / limitNumber),
+      reminders: paginatedReminders,
+    });
   } catch (error) {
     console.error("Error mendapatkan pengingat:", error);
-    res
-      .status(500)
-      .json({
-        message: "Terjadi kesalahan saat mendapatkan daftar pengingat!",
-      });
+    res.status(500).json({
+      message: "Terjadi kesalahan saat mendapatkan daftar pengingat!",
+    });
   }
 });
 
@@ -164,11 +173,9 @@ app.get("/get-sent-reminder/:id", (req, res) => {
     res.json({ sentReminder });
   } catch (error) {
     console.error("Error mendapatkan pengingat terkirim:", error);
-    res
-      .status(500)
-      .json({
-        message: "Terjadi kesalahan saat mendapatkan pengingat terkirim!",
-      });
+    res.status(500).json({
+      message: "Terjadi kesalahan saat mendapatkan pengingat terkirim!",
+    });
   }
 });
 
@@ -209,11 +216,9 @@ app.put("/update-sent-reminder/:id", (req, res) => {
     });
   } catch (error) {
     console.error("Error memperbarui pengingat terkirim:", error);
-    res
-      .status(500)
-      .json({
-        message: "Terjadi kesalahan saat memperbarui pengingat terkirim!",
-      });
+    res.status(500).json({
+      message: "Terjadi kesalahan saat memperbarui pengingat terkirim!",
+    });
   }
 });
 
@@ -237,11 +242,9 @@ app.delete("/delete-sent-reminder/:id", (req, res) => {
     res.json({ message: "Pengingat terkirim berhasil dihapus!" });
   } catch (error) {
     console.error("Error menghapus pengingat terkirim:", error);
-    res
-      .status(500)
-      .json({
-        message: "Terjadi kesalahan saat menghapus pengingat terkirim!",
-      });
+    res.status(500).json({
+      message: "Terjadi kesalahan saat menghapus pengingat terkirim!",
+    });
   }
 });
 
@@ -257,26 +260,37 @@ const sendWhatsAppMessage = async (phoneNumber, message) => {
   }
 };
 
-// Cron job untuk mengecek pengingat dan mengirim pesan
-cron.schedule("* * * * *", () => {
+cron.schedule("* * * * *", async () => {
   const now = new Date();
-  reminders = reminders.filter((reminder) => {
-    if (now >= reminder.reminderDateTime) {
-      sendWhatsAppMessage(reminder.phoneNumber, reminder.message)
-        .then(() => {
-          console.log(
-            `Pesan dikirim ke ${reminder.phoneNumber}, pengingat dihapus.`
-          );
-          sentReminders.push(reminder); // Catat pengingat yang berhasil terkirim
-        })
-        .catch((error) => {
-          console.error("Gagal mengirim pesan:", error);
-          return true; // Jangan hapus pengingat jika gagal mengirim
-        });
-      return false; // Hapus pengingat setelah pesan dikirim
-    }
-    return true; // Pertahankan pengingat jika belum waktunya
-  });
+
+  // Filter pengingat yang waktunya telah tiba
+  const dueReminders = reminders.filter(
+    (reminder) => now >= reminder.reminderDateTime
+  );
+
+  // Kirim pesan untuk setiap pengingat yang waktunya telah tiba
+  const sendPromises = dueReminders.map((reminder) =>
+    sendWhatsAppMessage(reminder.phoneNumber, reminder.message)
+      .then(() => {
+        console.log(
+          `Pesan dikirim ke ${reminder.phoneNumber}, pengingat dihapus.`
+        );
+        sentReminders.push(reminder); // Catat pengingat yang berhasil terkirim
+      })
+      .catch((error) => {
+        console.error("Gagal mengirim pesan:", error);
+        return reminder; // Return reminder if failed to send message
+      })
+  );
+
+  // Tunggu hingga semua pesan selesai dikirim
+  const failedReminders = await Promise.all(sendPromises);
+
+  // Update reminders, hapus yang berhasil dikirim
+  reminders = reminders.filter(
+    (reminder) =>
+      !dueReminders.includes(reminder) || failedReminders.includes(reminder)
+  );
 });
 
 // Handle 404 untuk endpoint yang tidak ditemukan
