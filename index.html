@@ -49,9 +49,9 @@
     <template x-for="reminder in reminders" :key="reminder.id">
       <li class="list-group-item d-flex justify-content-between align-items-center">
         <div>
-          <strong>{{ reminder.phoneNumber }}</strong><br>
-          <small>{{ reminder.reminderDateTime }}</small><br>
-          <span>{{ reminder.message }}</span>
+          <strong x-text="reminder.phoneNumber"></strong><br>
+          <small x-text="new Date(reminder.reminderDateTime).toLocaleString()" ></small><br>
+          <span x-text="reminder.message"></span>
         </div>
         <div>
           <button @click="editReminder(reminder)" class="btn btn-warning btn-sm mr-2">Edit</button>
