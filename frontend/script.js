@@ -181,21 +181,20 @@ function reminderApp() {
 
         // Template pesan
         applyTemplate(template) {
-            this.form.message = template.content
-                .replace("[Tanggal]", this.form.paymentDate)
-                .replace("[Bulan]", new Date(this.form.paymentDate).toLocaleString('id-ID', { month: 'long' }));
-            this.isDropdownOpen = false;
-        },
-
-        // Template otomatis dengan data kontak
-        applyContactTemplate() {
+            // Cari kontak berdasarkan nomor telepon yang dipilih
             const selectedContact = this.contacts.find(
                 contact => contact.phoneNumber === this.form.phoneNumber
             );
-            
+
+            // Jika kontak ditemukan, ganti [Nama] dengan nama kontak
             if (selectedContact) {
-                this.form.message = `Hai ${selectedContact.name}, jangan lupa bayar tagihan sebelum ${this.form.paymentDate}.`;
+                this.form.message = template.content
+                    .replace("[Nama]", selectedContact.name)
+                    .replace("[Jumlah]", "[Jumlah]") // Biarkan [Jumlah] sebagai placeholder
+                    .replace("[Tanggal]", this.form.paymentDate)
+                    .replace("[Bulan]", new Date(this.form.paymentDate).toLocaleString('id-ID', { month: 'long' }));
             } else {
+                // Jika kontak tidak ditemukan, beri peringatan
                 alert("Pilih kontak terlebih dahulu dari dropdown!");
             }
             this.isDropdownOpen = false;
