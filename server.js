@@ -45,7 +45,19 @@ app.post("/schedule-reminder", (req, res) => {
   }
 
   const { phoneNumber, paymentDate, reminderTime, message } = value;
-  const reminderDateTime = new Date(`${paymentDate}T${reminderTime}`);
+  console.log(`Received: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`);
+  
+  // Ensure the date and time are correctly formatted
+  const date = new Date(paymentDate);
+  const [year, month, day] = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
+  const [hours, minutes] = reminderTime.split(':');
+  const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
+  console.log(`Parsed Date: ${reminderDateTime}`);
+
+  // Ensure the date is correctly parsed
+  if (isNaN(reminderDateTime.getTime())) {
+    return res.status(400).json({ message: "Invalid date or time format" });
+  }
 
   // ID unik menggunakan timestamp
   const reminder = {
@@ -87,7 +99,20 @@ app.put("/update-reminder/:id", (req, res) => {
   }
 
   const { phoneNumber, paymentDate, reminderTime, message } = value;
-  const reminderDateTime = new Date(`${paymentDate}T${reminderTime}`);
+  console.log(`Received: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`);
+  
+  // Ensure the date and time are correctly formatted
+  const date = new Date(paymentDate);
+  const [year, month, day] = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
+  const [hours, minutes] = reminderTime.split(':');
+  const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
+  console.log(`Parsed Date: ${reminderDateTime}`);
+
+  // Ensure the date is correctly parsed
+  if (isNaN(reminderDateTime.getTime())) {
+    return res.status(400).json({ message: "Invalid date or time format" });
+  }
+
   const id = parseInt(req.params.id);
 
   if (!reminders.has(id)) {
