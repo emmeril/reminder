@@ -1,25 +1,92 @@
 const express = require("express");
 const cron = require("node-cron");
 const cors = require("cors");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const Joi = require("joi");
 
 const app = express();
+const JWT_SECRET = "supersecretkey123!";
 
 app.use(cors());
 app.use(express.json()); // Menggunakan express.json() sebagai pengganti bodyParser
 
+let users = [];
 let reminders = new Map(); // Menggunakan Map untuk pengingat
 let sentReminders = new Map(); // Menggunakan Map untuk pengingat terkirim
 // Data untuk menyimpan daftar kontak
 let contacts = new Map();
+
+// Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
+
+// Schemas untuk user login dan register
+const userSchema = Joi.object({
+  username: Joi.string().min(3).required(),
+  password: Joi.string().min(6).required(),
+});
 
 // Schema validasi untuk kontak
 const contactSchema = Joi.object({
   name: Joi.string().required(),
   phoneNumber: Joi.string().pattern(/^\d+$/).required(),
 });
+
+// Schema validasi menggunakan Joi
+const reminderSchema = Joi.object({
+  phoneNumber: Joi.string().pattern(/^\d+$/).required(),
+  paymentDate: Joi.date().iso().required(),
+  reminderTime: Joi.string()
+    .pattern(/^\d{2}:\d{2}$/)
+    .required(),
+  message: Joi.string().required(),
+});
+
+// Routes
+app.post("/register", async (req, res) => {
+  const { error, value } = userSchema.validate(req.body);
+  if (error) return res.status(400).json({ message: error.details[0].message });
+
+  const { username, password } = value;
+  if (users.some((u) => u.username === username)) {
+    return res.status(400).json({ message: "Username already exists" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  users.push({ id: Date.now(), username, password: hashedPassword });
+  res.status(201).json({ message: "User registered successfully" });
+});
+
+app.post("/login", async (req, res) => {
+  const { error, value } = userSchema.validate(req.body);
+  if (error) return res.status(400).json({ message: error.details[0].message });
+
+  const { username, password } = value;
+  const user = users.find((u) => u.username === username);
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  const token = jwt.sign({ id: user.id, username }, JWT_SECRET, {
+    expiresIn: "1h",
+  });
+  res.json({ token });
+});
+
+// Protected Routes
+app.use(authenticateToken);
 
 // Endpoint untuk menambahkan kontak
 app.post("/add-contact", (req, res) => {
@@ -52,6 +119,7 @@ app.delete("/delete-contact/:id", (req, res) => {
 
   res.json({ message: "Kontak berhasil dihapus!" });
 });
+
 // Membuat instance klien WhatsApp
 const whatsappClient = new Client({
   authStrategy: new LocalAuth(), // Menyimpan sesi secara lokal
@@ -66,16 +134,6 @@ whatsappClient.on("qr", (qr) => {
 // Saat klien siap digunakan
 whatsappClient.on("ready", () => {
   console.log("Bot WhatsApp siap digunakan dan terhubung ke akun WhatsApp.");
-});
-
-// Schema validasi menggunakan Joi
-const reminderSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^\d+$/).required(),
-  paymentDate: Joi.date().iso().required(),
-  reminderTime: Joi.string()
-    .pattern(/^\d{2}:\d{2}$/)
-    .required(),
-  message: Joi.string().required(),
 });
 
 // Endpoint untuk menambahkan pengingat
