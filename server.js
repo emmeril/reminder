@@ -120,6 +120,9 @@ app.delete("/delete-contact/:id", (req, res) => {
   res.json({ message: "Kontak berhasil dihapus!" });
 });
 
+let qrCodeData = null;
+let isAuthenticated = false;
+
 // Membuat instance klien WhatsApp
 const whatsappClient = new Client({
   authStrategy: new LocalAuth(), // Menyimpan sesi secara lokal
@@ -129,15 +132,27 @@ const whatsappClient = new Client({
 whatsappClient.on("qr", (qr) => {
   console.log("QR code untuk login:");
   qrcode.generate(qr, { small: true });
+  qrCodeData = qr;
+  isAuthenticated = false;
 });
 
 // Saat klien siap digunakan
 whatsappClient.on("ready", () => {
   console.log("Bot WhatsApp siap digunakan dan terhubung ke akun WhatsApp.");
+  isAuthenticated = true;
+  qrCodeData = null;
+});
+
+// Endpoint untuk mendapatkan status WhatsApp
+app.get("/whatsapp-status", authenticateToken, (req, res) => {
+  res.json({
+    authenticated: isAuthenticated,
+    qrCode: qrCodeData,
+  });
 });
 
 // Endpoint untuk menambahkan pengingat
-app.post("/schedule-reminder", (req, res) => {
+app.post("/schedule-reminder", authenticateToken, (req, res) => {
   const { error, value } = reminderSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
@@ -179,7 +194,7 @@ app.post("/schedule-reminder", (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar pengingat dengan pagination
-app.get("/get-reminders", (req, res) => {
+app.get("/get-reminders", authenticateToken, (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
@@ -197,7 +212,7 @@ app.get("/get-reminders", (req, res) => {
 });
 
 // Endpoint untuk memperbarui pengingat berdasarkan ID
-app.put("/update-reminder/:id", (req, res) => {
+app.put("/update-reminder/:id", authenticateToken, (req, res) => {
   const { error, value } = reminderSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
@@ -241,7 +256,7 @@ app.put("/update-reminder/:id", (req, res) => {
 });
 
 // Endpoint untuk menghapus pengingat berdasarkan ID
-app.delete("/delete-reminder/:id", (req, res) => {
+app.delete("/delete-reminder/:id", authenticateToken, (req, res) => {
   const id = parseInt(req.params.id);
 
   if (!reminders.delete(id)) {

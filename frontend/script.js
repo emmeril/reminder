@@ -85,10 +85,76 @@ function reminderApp() {
     isDropdownOpen: false,
     isContactDropdownOpen: false,
 
+    showQrModal: false,
+    qrStatus: "Memuat QR Code...",
+    qrInterval: null,
+
     init() {
       if (!this.token) window.location.href = "/";
+      this.checkWhatsAppStatus();
+      this.fetchReminders(); 
+      this.fetchContacts();
     },
-    
+
+    // Di dalam function app() - script.js
+    async checkWhatsAppStatus() {
+      try {
+        const response = await fetch("http://localhost:3000/whatsapp-status", {
+          headers: { Authorization: `Bearer ${this.token}` },
+        });
+
+        const status = await response.json();
+
+        if (!status.authenticated) {
+          this.showQrModal = true;
+          if (status.qrCode) {
+            this.generateQRCode(status.qrCode);
+            this.qrStatus = "Scan QR Code untuk melanjutkan";
+          } else {
+            this.qrStatus = "Menghubungkan ke WhatsApp...";
+          }
+
+          // Mulai interval jika belum ada
+          if (!this.qrInterval) {
+            this.qrInterval = setInterval(async () => {
+              const newStatus = await this.checkWhatsAppStatus();
+              if (newStatus?.authenticated) {
+                clearInterval(this.qrInterval);
+                this.qrInterval = null;
+                this.showQrModal = false;
+                this.$nextTick(() => {
+                  alert("WhatsApp terhubung! Silahkan lanjutkan.");
+                });
+              }
+            }, 2000);
+          }
+        } else {
+          // Jika sudah terautentikasi, pastikan modal ditutup
+          this.showQrModal = false;
+          clearInterval(this.qrInterval);
+          this.qrInterval = null;
+          return { authenticated: true };
+        }
+      } catch (error) {
+        console.error("Error checking WhatsApp status:", error);
+      }
+    },
+
+    generateQRCode(qrData) {
+      const container = document.getElementById("qrCodeContainer");
+      container.innerHTML = "";
+
+      // Gunakan library QRCode.js
+      new QRCode(container, {
+        text: qrData,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H,
+      });
+    },
+
     /* ------------------------ METHOD UNTUK REMINDER ------------------------ */
 
     // Ambil data reminders
@@ -285,5 +351,10 @@ function reminderApp() {
     toggleContactDropdown() {
       this.isContactDropdownOpen = !this.isContactDropdownOpen;
     },
+    
+    logout() {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+      }
   };
 }
