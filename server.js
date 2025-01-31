@@ -12,7 +12,46 @@ app.use(express.json()); // Menggunakan express.json() sebagai pengganti bodyPar
 
 let reminders = new Map(); // Menggunakan Map untuk pengingat
 let sentReminders = new Map(); // Menggunakan Map untuk pengingat terkirim
+// Data untuk menyimpan daftar kontak
+let contacts = new Map();
 
+// Schema validasi untuk kontak
+const contactSchema = Joi.object({
+  name: Joi.string().required(),
+  phoneNumber: Joi.string().pattern(/^\d+$/).required(),
+});
+
+// Endpoint untuk menambahkan kontak
+app.post("/add-contact", (req, res) => {
+  const { error, value } = contactSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const { name, phoneNumber } = value;
+  const id = Date.now(); // ID unik menggunakan timestamp
+  const contact = { id, name, phoneNumber };
+
+  contacts.set(id, contact);
+  res.json({ message: "Kontak berhasil ditambahkan!", contact });
+});
+
+// Endpoint untuk mendapatkan daftar kontak
+app.get("/get-contacts", (req, res) => {
+  const contactList = Array.from(contacts.values());
+  res.json({ contacts: contactList });
+});
+
+// Endpoint untuk menghapus kontak berdasarkan ID
+app.delete("/delete-contact/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (!contacts.delete(id)) {
+    return res.status(404).json({ message: "Kontak tidak ditemukan!" });
+  }
+
+  res.json({ message: "Kontak berhasil dihapus!" });
+});
 // Membuat instance klien WhatsApp
 const whatsappClient = new Client({
   authStrategy: new LocalAuth(), // Menyimpan sesi secara lokal
@@ -33,7 +72,9 @@ whatsappClient.on("ready", () => {
 const reminderSchema = Joi.object({
   phoneNumber: Joi.string().pattern(/^\d+$/).required(),
   paymentDate: Joi.date().iso().required(),
-  reminderTime: Joi.string().pattern(/^\d{2}:\d{2}$/).required(),
+  reminderTime: Joi.string()
+    .pattern(/^\d{2}:\d{2}$/)
+    .required(),
   message: Joi.string().required(),
 });
 
@@ -45,12 +86,18 @@ app.post("/schedule-reminder", (req, res) => {
   }
 
   const { phoneNumber, paymentDate, reminderTime, message } = value;
-  console.log(`Received: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`);
-  
+  console.log(
+    `Received: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`
+  );
+
   // Ensure the date and time are correctly formatted
   const date = new Date(paymentDate);
-  const [year, month, day] = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
-  const [hours, minutes] = reminderTime.split(':');
+  const [year, month, day] = [
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+  ];
+  const [hours, minutes] = reminderTime.split(":");
   const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
   console.log(`Parsed Date: ${reminderDateTime}`);
 
@@ -99,12 +146,18 @@ app.put("/update-reminder/:id", (req, res) => {
   }
 
   const { phoneNumber, paymentDate, reminderTime, message } = value;
-  console.log(`Received: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`);
-  
+  console.log(
+    `Received: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`
+  );
+
   // Ensure the date and time are correctly formatted
   const date = new Date(paymentDate);
-  const [year, month, day] = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
-  const [hours, minutes] = reminderTime.split(':');
+  const [year, month, day] = [
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+  ];
+  const [hours, minutes] = reminderTime.split(":");
   const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
   console.log(`Parsed Date: ${reminderDateTime}`);
 
@@ -123,7 +176,10 @@ app.put("/update-reminder/:id", (req, res) => {
   const updatedReminder = { id, phoneNumber, reminderDateTime, message };
   reminders.set(id, updatedReminder);
 
-  res.json({ message: "Pengingat berhasil diperbarui!", reminder: updatedReminder });
+  res.json({
+    message: "Pengingat berhasil diperbarui!",
+    reminder: updatedReminder,
+  });
 });
 
 // Endpoint untuk menghapus pengingat berdasarkan ID
@@ -157,7 +213,9 @@ cron.schedule("* * * * *", async () => {
     if (now >= reminder.reminderDateTime) {
       try {
         await sendWhatsAppMessage(reminder.phoneNumber, reminder.message);
-        console.log(`Pengingat untuk ${reminder.phoneNumber} berhasil dikirim.`);
+        console.log(
+          `Pengingat untuk ${reminder.phoneNumber} berhasil dikirim.`
+        );
 
         // Pindahkan pengingat ke sentReminders
         sentReminders.set(reminder.id, reminder);

@@ -1,6 +1,6 @@
 function reminderApp() {
     return {
-        // Data form
+        // Data form reminder
         form: {
             phoneNumber: '',
             paymentDate: '',
@@ -14,6 +14,13 @@ function reminderApp() {
         currentPage: 1,
         limit: 5,
         totalPages: 1,
+
+        // Data kontak
+        contacts: [],
+        contactForm: {
+            name: '',
+            phoneNumber: ''
+        },
 
         // Template pesan
         messageTemplates: [
@@ -35,7 +42,13 @@ function reminderApp() {
             }
         ],
 
-        // Method untuk mengambil data reminders
+        // State dropdown
+        isDropdownOpen: false,
+        isContactDropdownOpen: false,
+
+        /* ------------------------ METHOD UNTUK REMINDER ------------------------ */
+        
+        // Ambil data reminders
         async fetchReminders() {
             const response = await fetch(`http://127.0.0.1:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`);
             const result = await response.json();
@@ -43,9 +56,12 @@ function reminderApp() {
             this.totalPages = result.totalPages;
         },
 
-        // Method untuk submit form
+        // Submit form reminder
         async submitForm() {
-            const url = this.form.reminderId ? `http://127.0.0.1:3000/update-reminder/${this.form.reminderId}` : "http://127.0.0.1:3000/schedule-reminder";
+            const url = this.form.reminderId ? 
+                `http://127.0.0.1:3000/update-reminder/${this.form.reminderId}` : 
+                "http://127.0.0.1:3000/schedule-reminder";
+            
             const method = this.form.reminderId ? "PUT" : "POST";
 
             const data = {
@@ -57,9 +73,7 @@ function reminderApp() {
 
             const response = await fetch(url, {
                 method: method,
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
             });
 
@@ -69,7 +83,7 @@ function reminderApp() {
             this.resetForm();
         },
 
-        // Method untuk mereset form
+        // Reset form reminder
         resetForm() {
             this.form = {
                 phoneNumber: '',
@@ -80,12 +94,12 @@ function reminderApp() {
             };
         },
 
-        // Method untuk membatalkan update
+        // Batalkan update reminder
         cancelUpdate() {
             this.resetForm();
         },
 
-        // Method untuk mengisi form dengan data reminder yang akan diupdate
+        // Handle update reminder
         handleUpdate(reminder) {
             this.form.phoneNumber = reminder.phoneNumber;
             this.form.paymentDate = new Date(reminder.reminderDateTime).toISOString().split('T')[0];
@@ -94,7 +108,7 @@ function reminderApp() {
             this.form.reminderId = reminder.id;
         },
 
-        // Method untuk menghapus reminder
+        // Hapus reminder
         async handleDelete(id) {
             const response = await fetch(`http://127.0.0.1:3000/delete-reminder/${id}`, {
                 method: "DELETE",
@@ -105,39 +119,94 @@ function reminderApp() {
             this.fetchReminders();
         },
 
-        // Method untuk pindah ke halaman sebelumnya
+        /* ------------------------ METHOD UNTUK KONTAK ------------------------ */
+        
+        // Ambil data kontak
+        async fetchContacts() {
+            const response = await fetch("http://127.0.0.1:3000/get-contacts");
+            const result = await response.json();
+            this.contacts = result.contacts;
+        },
+
+        // Submit form kontak
+        async submitContactForm() {
+            const response = await fetch("http://127.0.0.1:3000/add-contact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(this.contactForm),
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            this.fetchContacts();
+            this.contactForm = { name: '', phoneNumber: '' };
+        },
+
+        // Hapus kontak
+        async handleDeleteContact(id) {
+            const response = await fetch(`http://127.0.0.1:3000/delete-contact/${id}`, {
+                method: "DELETE",
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            this.fetchContacts();
+        },
+
+        // Pilih kontak dari dropdown
+        selectContact(contact) {
+            this.form.phoneNumber = contact.phoneNumber;
+            this.isContactDropdownOpen = false;
+        },
+
+        /* ------------------------ FITUR TAMBAHAN ------------------------ */
+        
+        // Pagination
         prevPage() {
             if (this.currentPage > 1) {
                 this.currentPage--;
                 this.fetchReminders();
             }
         },
-
-        // Method untuk pindah ke halaman berikutnya
         nextPage() {
             if (this.currentPage < this.totalPages) {
                 this.currentPage++;
                 this.fetchReminders();
             }
         },
-
-        // Method untuk pindah ke halaman tertentu
         changePage(page) {
             this.currentPage = page;
             this.fetchReminders();
         },
 
-        // Method untuk mengaplikasikan template pesan
+        // Template pesan
         applyTemplate(template) {
-            this.form.message = template.content;
+            this.form.message = template.content
+                .replace("[Tanggal]", this.form.paymentDate)
+                .replace("[Bulan]", new Date(this.form.paymentDate).toLocaleString('id-ID', { month: 'long' }));
             this.isDropdownOpen = false;
         },
 
-        // Method untuk toggle dropdown
+        // Template otomatis dengan data kontak
+        applyContactTemplate() {
+            const selectedContact = this.contacts.find(
+                contact => contact.phoneNumber === this.form.phoneNumber
+            );
+            
+            if (selectedContact) {
+                this.form.message = `Hai ${selectedContact.name}, jangan lupa bayar tagihan sebelum ${this.form.paymentDate}.`;
+            } else {
+                alert("Pilih kontak terlebih dahulu dari dropdown!");
+            }
+            this.isDropdownOpen = false;
+        },
+
+        // Toggle dropdown
         toggleDropdown() {
             this.isDropdownOpen = !this.isDropdownOpen;
         },
-
-        isDropdownOpen: false
+        toggleContactDropdown() {
+            this.isContactDropdownOpen = !this.isContactDropdownOpen;
+        }
     };
 }
