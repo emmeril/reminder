@@ -1,0 +1,23 @@
+/* Custom CSS untuk memperbaiki tampilan */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+textarea {
+    resize: none;
+    height: 120px;
+}
+
+.input-group-append .btn {
+    border-radius: 0 5px 5px 0;
+}
+
+.dropdown-menu {
+    max-height: 200px;
+    overflow-y: auto;
+}

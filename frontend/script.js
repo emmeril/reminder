@@ -1,5 +1,6 @@
 function reminderApp() {
     return {
+        // Data form
         form: {
             phoneNumber: '',
             paymentDate: '',
@@ -7,11 +8,34 @@ function reminderApp() {
             message: '',
             reminderId: ''
         },
+
+        // Data reminders
         reminders: [],
         currentPage: 1,
         limit: 5,
         totalPages: 1,
 
+        // Template pesan
+        messageTemplates: [
+            {
+                name: "Pembayaran Listrik",
+                content: "Hai [Nama], jangan lupa bayar tagihan listrik Rp [Jumlah] sebelum [Tanggal]."
+            },
+            {
+                name: "Pembayaran Sekolah",
+                content: "Reminder pembayaran SPP sekolah untuk bulan [Bulan] sebesar Rp [Jumlah]."
+            },
+            {
+                name: "Pembayaran Cicilan",
+                content: "Pengingat pembayaran cicilan ke-[Angka] sebesar Rp [Jumlah] jatuh tempo [Tanggal]."
+            },
+            {
+                name: "Tagihan Air",
+                content: "Pengingat pembayaran tagihan air bulan [Bulan] sebesar Rp [Jumlah]."
+            }
+        ],
+
+        // Method untuk mengambil data reminders
         async fetchReminders() {
             const response = await fetch(`http://127.0.0.1:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`);
             const result = await response.json();
@@ -19,6 +43,7 @@ function reminderApp() {
             this.totalPages = result.totalPages;
         },
 
+        // Method untuk submit form
         async submitForm() {
             const url = this.form.reminderId ? `http://127.0.0.1:3000/update-reminder/${this.form.reminderId}` : "http://127.0.0.1:3000/schedule-reminder";
             const method = this.form.reminderId ? "PUT" : "POST";
@@ -44,6 +69,7 @@ function reminderApp() {
             this.resetForm();
         },
 
+        // Method untuk mereset form
         resetForm() {
             this.form = {
                 phoneNumber: '',
@@ -54,10 +80,12 @@ function reminderApp() {
             };
         },
 
+        // Method untuk membatalkan update
         cancelUpdate() {
             this.resetForm();
         },
 
+        // Method untuk mengisi form dengan data reminder yang akan diupdate
         handleUpdate(reminder) {
             this.form.phoneNumber = reminder.phoneNumber;
             this.form.paymentDate = new Date(reminder.reminderDateTime).toISOString().split('T')[0];
@@ -66,6 +94,7 @@ function reminderApp() {
             this.form.reminderId = reminder.id;
         },
 
+        // Method untuk menghapus reminder
         async handleDelete(id) {
             const response = await fetch(`http://127.0.0.1:3000/delete-reminder/${id}`, {
                 method: "DELETE",
@@ -76,6 +105,7 @@ function reminderApp() {
             this.fetchReminders();
         },
 
+        // Method untuk pindah ke halaman sebelumnya
         prevPage() {
             if (this.currentPage > 1) {
                 this.currentPage--;
@@ -83,6 +113,7 @@ function reminderApp() {
             }
         },
 
+        // Method untuk pindah ke halaman berikutnya
         nextPage() {
             if (this.currentPage < this.totalPages) {
                 this.currentPage++;
@@ -90,9 +121,23 @@ function reminderApp() {
             }
         },
 
+        // Method untuk pindah ke halaman tertentu
         changePage(page) {
             this.currentPage = page;
             this.fetchReminders();
-        }
+        },
+
+        // Method untuk mengaplikasikan template pesan
+        applyTemplate(template) {
+            this.form.message = template.content;
+            this.isDropdownOpen = false;
+        },
+
+        // Method untuk toggle dropdown
+        toggleDropdown() {
+            this.isDropdownOpen = !this.isDropdownOpen;
+        },
+
+        isDropdownOpen: false
     };
 }
