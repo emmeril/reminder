@@ -220,7 +220,7 @@ function reminderApp() {
         body: JSON.stringify(data),
       });
 
-      alert(result.message);
+      // alert(result.message);
       this.showToast("Reminder berhasil disimpan!");
       this.fetchReminders();
       this.resetForm();
