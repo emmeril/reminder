@@ -112,14 +112,12 @@ function reminderApp() {
 
     init() {
       if (!this.token) window.location.href = "index.html";
-      this.checkWhatsAppStatus();
-      this.fetchReminders();
-      this.fetchContacts();
-
       // Auto-refresh setiap 5 menit
+      this.checkWhatsAppStatus();
+      this.fetchContacts();
       setInterval(() => {
-        this.loadReminders();
-      }, 300000); // 5 menit dalam milidetik
+        this.fetchReminders();
+      }, 30000); // 5 menit dalam milidetik
     },
 
     // Di dalam function app() - script.js
@@ -211,19 +209,23 @@ function reminderApp() {
         message: this.form.message,
       };
 
-      const result = await fetchData(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.token}`,
-        },
-        body: JSON.stringify(data),
-      });
+      try {
+        const result = await fetchData(url, {
+          method: method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.token}`,
+          },
+          body: JSON.stringify(data),
+        });
 
-      alert(result.message);
-      this.showToast("Reminder berhasil disimpan!");
-      this.fetchReminders();
-      this.resetForm();
+        // Tampilkan toast
+        this.showToast("Reminder berhasil disimpan!");
+        this.fetchReminders();
+        this.resetForm();
+      } catch (error) {
+        this.showToast("Gagal menyimpan reminder!", "danger");
+      }
     },
 
     // Reset form reminder
