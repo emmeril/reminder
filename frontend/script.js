@@ -32,6 +32,15 @@ function auth() {
   };
 }
 
+async function fetchData(url, options = {}) {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message);
+  }
+  return response.json();
+}
+
 function reminderApp() {
   return {
     token: localStorage.getItem("token"),
@@ -99,11 +108,9 @@ function reminderApp() {
     // Di dalam function app() - script.js
     async checkWhatsAppStatus() {
       try {
-        const response = await fetch("http://localhost:3000/whatsapp-status", {
+        const status = await fetchData("http://localhost:3000/whatsapp-status", {
           headers: { Authorization: `Bearer ${this.token}` },
         });
-
-        const status = await response.json();
 
         if (!status.authenticated) {
           this.showQrModal = true;
@@ -159,13 +166,12 @@ function reminderApp() {
 
     // Ambil data reminders
     async fetchReminders() {
-      const response = await fetch(
+      const result = await fetchData(
         `http://127.0.0.1:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
         {
           headers: { Authorization: `Bearer ${this.token}` },
         }
       );
-      const result = await response.json();
       this.reminders = result.reminders;
       this.totalPages = result.totalPages;
     },
@@ -185,7 +191,7 @@ function reminderApp() {
         message: this.form.message,
       };
 
-      const response = await fetch(url, {
+      const result = await fetchData(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
@@ -194,7 +200,6 @@ function reminderApp() {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json();
       alert(result.message);
       this.fetchReminders();
       this.resetForm();
@@ -232,17 +237,14 @@ function reminderApp() {
 
     // Hapus reminder
     async handleDelete(id) {
-      const response = await fetch(
+      const result = await fetchData(
         `http://127.0.0.1:3000/delete-reminder/${id}`,
         {
           headers: { Authorization: `Bearer ${this.token}` },
-        },
-        {
           method: "DELETE",
         }
       );
 
-      const result = await response.json();
       alert(result.message);
       this.fetchReminders();
     },
@@ -251,16 +253,15 @@ function reminderApp() {
 
     // Ambil data kontak
     async fetchContacts() {
-      const response = await fetch("http://127.0.0.1:3000/get-contacts", {
+      const result = await fetchData("http://127.0.0.1:3000/get-contacts", {
         headers: { Authorization: `Bearer ${this.token}` },
       });
-      const result = await response.json();
       this.contacts = result.contacts;
     },
 
     // Submit form kontak
     async submitContactForm() {
-      const response = await fetch("http://127.0.0.1:3000/add-contact", {
+      const result = await fetchData("http://127.0.0.1:3000/add-contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -269,7 +270,6 @@ function reminderApp() {
         body: JSON.stringify(this.contactForm),
       });
 
-      const result = await response.json();
       alert(result.message);
       this.fetchContacts();
       this.contactForm = { name: "", phoneNumber: "" };
@@ -277,17 +277,14 @@ function reminderApp() {
 
     // Hapus kontak
     async handleDeleteContact(id) {
-      const response = await fetch(
+      const result = await fetchData(
         `http://127.0.0.1:3000/delete-contact/${id}`,
         {
           headers: { Authorization: `Bearer ${this.token}` },
-        },
-        {
           method: "DELETE",
         }
       );
 
-      const result = await response.json();
       alert(result.message);
       this.fetchContacts();
     },

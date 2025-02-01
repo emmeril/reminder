@@ -21,7 +21,7 @@
         </nav>
         <h1 class="text-center mb-4">Reminder App</h1>
 
-        <!-- Baris Pertama: Form dan Daftar Pengingat -->
+        <!-- Baris Pertama: Form Input dan Daftar Pengingat -->
         <div class="row">
             <!-- Kolom Form Input -->
             <div class="col-md-6">
@@ -80,9 +80,6 @@
                                                     <span x-text="template.name"></span>
                                                 </button>
                                             </template>
-                                            <button class="dropdown-item" type="button" @click="applyContactTemplate">
-                                                Gunakan Kontak
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -139,9 +136,10 @@
             </div>
         </div>
 
-        <!-- Baris Kedua: Daftar Kontak -->
+        <!-- Baris Kedua: Daftar Kontak dan QR Code -->
         <div class="row mt-4">
-            <div class="col-md-12">
+            <!-- Kolom Daftar Kontak -->
+            <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Daftar Kontak</h5>
@@ -174,15 +172,18 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Scan WhatsApp QR Code</h5>
-            <div class="text-center">
-                <div id="qrCodeContainer"></div>
-                <div class="mt-3" x-text="qrStatus"></div>
+            <!-- Kolom QR Code -->
+            <div class="col-md-6" x-show="showQrModal">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Scan WhatsApp QR Code</h5>
+                        <div class="text-center">
+                            <div id="qrCodeContainer"></div>
+                            <div class="mt-3" x-text="qrStatus"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
