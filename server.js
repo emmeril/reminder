@@ -179,31 +179,7 @@ app.post("/schedule-reminder", authenticateToken, (req, res) => {
     return res.status(400).json({ message: "Invalid date or time format" });
   }
 
-  // ID unik menggunakan tim
-  // 
-  // 
-  // 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  estamp
+  // ID unik menggunakan timestamp
   const reminder = {
     id: Date.now(),
     phoneNumber,
@@ -296,10 +272,9 @@ const sendWhatsAppMessage = async (phoneNumber, message) => {
     const chatId = `${phoneNumber}@c.us`;
     await whatsappClient.sendMessage(chatId, message);
     console.log(`Pesan berhasil dikirim ke ${phoneNumber}`);
-    return true;
   } catch (error) {
     console.error("Gagal mengirim pesan:", error);
-    return false;
+    throw error;
   }
 };
 
@@ -309,12 +284,16 @@ cron.schedule("* * * * *", async () => {
 
   for (const reminder of reminders.values()) {
     if (now >= reminder.reminderDateTime) {
-      const success = await sendWhatsAppMessage(reminder.phoneNumber, reminder.message);
-      if (success) {
-        console.log(`Pengingat untuk ${reminder.phoneNumber} berhasil dikirim.`);
+      try {
+        await sendWhatsAppMessage(reminder.phoneNumber, reminder.message);
+        console.log(
+          `Pengingat untuk ${reminder.phoneNumber} berhasil dikirim.`
+        );
+
+        // Pindahkan pengingat ke sentReminders
         sentReminders.set(reminder.id, reminder);
-        reminders.delete(reminder.id);
-      } else {
+        reminders.delete(reminder.id); // Hapus dari daftar pengingat aktif
+      } catch (error) {
         console.error(`Gagal mengirim pengingat ke ${reminder.phoneNumber}`);
       }
     }
