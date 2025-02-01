@@ -111,7 +111,7 @@ function reminderApp() {
     },
 
     init() {
-      if (!this.token) window.location.href = "index.html";
+      if (!this.token) window.location.href = "/";
       this.checkWhatsAppStatus();
       this.fetchReminders();
       this.fetchContacts();
