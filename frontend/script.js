@@ -113,13 +113,13 @@ function reminderApp() {
     init() {
       if (!this.token) window.location.href = "index.html";
       this.checkWhatsAppStatus();
-      this.fetchReminders();
       this.fetchContacts();
+      this.fetchReminders();
 
       // Auto-refresh setiap 5 menit
       setInterval(() => {
-        this.loadReminders();
-      }, 300000); // 5 menit dalam milidetik
+        this.fetchReminders();
+      }, 3000); // 5 menit dalam milidetik
     },
 
     // Di dalam function app() - script.js
