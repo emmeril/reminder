@@ -219,13 +219,10 @@ function reminderApp() {
           body: JSON.stringify(data),
         });
 
-        // Tampilkan toast
-        this.showToast("Reminder berhasil disimpan!");
-        this.fetchReminders();
-        this.resetForm();
-      } catch (error) {
-        this.showToast("Gagal menyimpan reminder!", "danger");
-      }
+      alert(result.message);
+      this.showToast("Reminder berhasil disimpan!");
+      this.fetchReminders();
+      this.resetForm();
     },
 
     // Reset form reminder
