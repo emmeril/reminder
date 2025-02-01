@@ -22,5 +22,26 @@ textarea {
     overflow-y: auto;
 }
 
+/* Toast Styles */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    min-width: 250px;
+    padding: 15px;
+    background-color: #28a745;
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
 
+.toast.show {
+    opacity: 1;
+}
 
+.toast.danger {
+    background-color: #dc3545;
+}
