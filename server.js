@@ -1,7 +1,7 @@
+require("dotenv").config();
 const express = require("express");
 const cron = require("node-cron");
 const cors = require("cors");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
@@ -9,12 +9,11 @@ const Joi = require("joi");
 const { execSync } = require("child_process");
 
 const app = express();
-const JWT_SECRET = "supersecretkey123!";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 app.use(cors());
 app.use(express.json()); // Menggunakan express.json() sebagai pengganti bodyParser
 
-let users = [];
 let reminders = new Map(); // Menggunakan Map untuk pengingat
 let sentReminders = new Map(); // Menggunakan Map untuk pengingat terkirim
 // Data untuk menyimpan daftar kontak
@@ -55,34 +54,29 @@ const reminderSchema = Joi.object({
   message: Joi.string().required(),
 });
 
-// Routes
-app.post("/register", async (req, res) => {
-  const { error, value } = userSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: error.details[0].message });
-
-  const { username, password } = value;
-  if (users.some((u) => u.username === username)) {
-    return res.status(400).json({ message: "Username already exists" });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  users.push({ id: Date.now(), username, password: hashedPassword });
-  res.status(201).json({ message: "User registered successfully" });
-});
-
+/**
+ * Endpoint for user login
+ */
 app.post("/login", async (req, res) => {
-  const { error, value } = userSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: error.details[0].message });
+  const { username, password } = req.body;
 
-  const { username, password } = value;
-  const user = users.find((u) => u.username === username);
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  // Retrieve data from .env
+  const envUsername = process.env.ADMIN_USERNAME;
+  const envPassword = process.env.ADMIN_PASSWORD;
+
+  if (!envUsername || !envPassword) {
+    return res
+      .status(500)
+      .json({ message: "Username atau password belum dikonfigurasi di .env" });
   }
 
-  const token = jwt.sign({ id: user.id, username }, JWT_SECRET, {
-    expiresIn: "1h",
-  });
+  // Validate username & password
+  if (username !== envUsername || password !== envPassword) {
+    return res.status(401).json({ message: "Username atau password salah" });
+  }
+
+  // Create JWT token
+  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
   res.json({ token });
 });
 
@@ -138,7 +132,7 @@ if (process.platform === "linux") {
 const whatsappClient = new Client({
   authStrategy: new LocalAuth(), // Menyimpan sesi secara lokal
   puppeteer: {
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   },
 });
 
@@ -278,6 +272,54 @@ app.delete("/delete-reminder/:id", authenticateToken, (req, res) => {
   }
 
   res.json({ message: "Pengingat berhasil dihapus!" });
+});
+
+// Endpoint untuk mendapatkan daftar pengingat terkirim
+app.get("/get-sent-reminders", authenticateToken, (req, res) => {
+  const sentReminderList = Array.from(sentReminders.values());
+  res.json({ sentReminders: sentReminderList });
+});
+
+// Endpoint untuk menjadwalkan ulang pengingat terkirim
+app.post("/reschedule-reminder", authenticateToken, (req, res) => {
+  const { error, value } = reminderSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const { phoneNumber, paymentDate, reminderTime, message } = value;
+  console.log(
+    `Received for reschedule: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`
+  );
+
+  // Ensure the date and time are correctly formatted
+  const date = new Date(paymentDate);
+  const [year, month, day] = [
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+  ];
+  const [hours, minutes] = reminderTime.split(":");
+  const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
+  console.log(`Parsed Date for reschedule: ${reminderDateTime}`);
+
+  // Ensure the date is correctly parsed
+  if (isNaN(reminderDateTime.getTime())) {
+    return res.status(400).json({ message: "Invalid date or time format" });
+  }
+
+  // ID unik menggunakan timestamp
+  const reminder = {
+    id: Date.now(),
+    phoneNumber,
+    reminderDateTime,
+    message,
+  };
+
+  // Tambahkan pengingat ke Map
+  reminders.set(reminder.id, reminder);
+
+  res.json({ message: "Pengingat pembayaran berhasil dijadwalkan ulang!", reminder });
 });
 
 // Fungsi untuk mengirim pesan ke WhatsApp

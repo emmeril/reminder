@@ -115,6 +115,7 @@ function reminderApp() {
       this.checkWhatsAppStatus();
       this.fetchContacts();
       this.fetchReminders();
+      this.fetchSentReminders();
 
       // Auto-refresh setiap 5 menit
       setInterval(() => {
@@ -376,6 +377,62 @@ function reminderApp() {
     logout() {
       localStorage.removeItem("token");
       window.location.href = "index.html";
+    },
+
+    sentReminders: [],
+
+    async fetchSentReminders() {
+      try {
+        const response = await fetch(
+          "http://127.0.0.1:3000/get-sent-reminders",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        const data = await response.json();
+        this.sentReminders = data.sentReminders;
+      } catch (error) {
+        console.error("Failed to fetch sent reminders:", error);
+      }
+    },
+
+    async rescheduleReminder(reminder) {
+      try {
+        const response = await fetch(
+          "http://127.0.0.1:3000/reschedule-reminder",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              phoneNumber: reminder.phoneNumber,
+              paymentDate: new Date(reminder.reminderDateTime)
+                .toISOString()
+                .split("T")[0],
+              reminderTime: new Date(reminder.reminderDateTime)
+                .toTimeString()
+                .split(" ")[0]
+                .slice(0, 5),
+              message: reminder.message,
+            }),
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          this.fetchReminders();
+          this.fetchSentReminders();
+          this.showToast(data.message);
+        } else {
+          this.showToast(data.message, "danger");
+        }
+      } catch (error) {
+        console.error("Failed to reschedule reminder:", error);
+        this.showToast("Failed to reschedule reminder", "danger");
+      }
     },
   };
 }

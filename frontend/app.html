@@ -186,6 +186,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- Baris Ketiga: Daftar Pengingat Terkirim -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Sent Reminders</h5>
+                        <div id="sentReminderList">
+                            <template x-for="sentReminder in sentReminders" :key="sentReminder.id">
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-muted"
+                                            x-text="new Date(sentReminder.reminderDateTime).toLocaleString('en-GB')">
+                                        </h6>
+                                        <p class="card-text" x-text="sentReminder.message"></p>
+                                        <p class="card-text"><strong>Phone:</strong> <span
+                                                x-text="sentReminder.phoneNumber"></span></p>
+                                        <button class="btn btn-sm btn-primary"
+                                            @click="rescheduleReminder(sentReminder)">Reschedule</button>
+
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
