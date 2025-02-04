@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const Joi = require("joi");
+const { execSync } = require("child_process");
 
 const app = express();
 const JWT_SECRET = "supersecretkey123!";
@@ -123,9 +124,22 @@ app.delete("/delete-contact/:id", (req, res) => {
 let qrCodeData = null;
 let isAuthenticated = false;
 
+// Ensure necessary dependencies are installed on Ubuntu Server 20.04
+if (process.platform === "linux") {
+  try {
+    execSync("apt-get update && apt-get install -y libgbm-dev");
+    console.log("Dependencies installed successfully.");
+  } catch (error) {
+    console.error("Failed to install dependencies:", error);
+  }
+}
+
 // Membuat instance klien WhatsApp
 const whatsappClient = new Client({
   authStrategy: new LocalAuth(), // Menyimpan sesi secara lokal
+  puppeteer: {
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  },
 });
 
 // Menampilkan QR code untuk login
