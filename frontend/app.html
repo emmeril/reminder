@@ -27,7 +27,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Schedule a Reminder</h5>
+                        <h5 class="card-title">Add Reminder</h5>
                         <form id="reminderForm" @submit.prevent="submitForm">
                             <div class="form-group">
                                 <label for="phoneNumber">Phone Number:</label>
@@ -142,7 +142,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Daftar Kontak</h5>
+                        <h5 class="card-title">Add Kontak</h5>
                         <form id="contactForm" @submit.prevent="submitContactForm">
                             <div class="form-group">
                                 <label for="contactName">Nama:</label>
@@ -156,6 +156,15 @@
                             </div>
                             <button type="submit" class="btn btn-primary">Tambah Kontak</button>
                         </form>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Daftar Kontak</h5>
                         <div id="contactList" class="mt-3">
                             <template x-for="contact in contacts" :key="contact.id">
                                 <div class="card mb-3">
@@ -172,27 +181,15 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Kolom QR Code -->
-            <div class="col-md-6" x-show="showQrModal">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Scan WhatsApp QR Code</h5>
-                        <div class="text-center">
-                            <div id="qrCodeContainer"></div>
-                            <div class="mt-3" x-text="qrStatus"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Baris Ketiga: Daftar Pengingat Terkirim -->
         <div class="row mt-4">
-            <div class="col-md-12">
+
+            <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Sent Reminders</h5>
+                        <h5 class="card-title">Log Sent Reminders</h5>
                         <div id="sentReminderList">
                             <template x-for="sentReminder in sentReminders" :key="sentReminder.id">
                                 <div class="card mb-3">
@@ -209,6 +206,18 @@
                                     </div>
                                 </div>
                             </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Kolom QR Code -->
+            <div class="col-md-6" x-show="showQrModal">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Scan WhatsApp QR Code</h5>
+                        <div class="text-center align-items-center">
+                            <div id="qrCodeContainer"></div>
+                            <div class="mt-3" x-text="qrStatus"></div>
                         </div>
                     </div>
                 </div>
