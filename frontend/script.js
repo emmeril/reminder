@@ -100,7 +100,7 @@ function reminderApp() {
         name: "Member Rp 40.000",
         content:
           "Hai [Nama], jangan lupa bayar tagihan Emmeril Hotspot untuk bulan [Bulan], [Tanggal] sebesar Rp 40.000, pembayaran bisa melalui transfer ke BCA 134-266-9497 a/n Hafriyanto. konfirmasi pembayaran ke nomor ini ya. Terima kasih.",
-     },
+      },
       // {
       //   name: "Pembayaran Cicilan",
       //   content:
@@ -150,7 +150,10 @@ function reminderApp() {
     async checkWhatsAppStatus() {
       try {
         const status = await fetchData(
-          "http://202.70.133.37:3000/whatsapp-status"
+          "http://202.70.133.37:3000/whatsapp-status",
+          {
+            headers: { Authorization: `Bearer ${this.token}` },
+          }
         );
 
         if (!status.authenticated) {
@@ -208,7 +211,10 @@ function reminderApp() {
     // Ambil data reminders
     async fetchReminders() {
       const result = await fetchData(
-        `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`
+        `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
+        {
+          headers: { Authorization: `Bearer ${this.token}` },
+        }
       );
       this.reminders = result.reminders;
       this.totalPages = result.totalPages;
@@ -294,7 +300,10 @@ function reminderApp() {
     // Fetch data kontak dengan pagination yang benar
     async fetchContacts() {
       const result = await fetchData(
-        `http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`
+        `http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`,
+        {
+          headers: { Authorization: `Bearer ${this.token}` },
+        }
       );
       this.contacts = result.contacts;
       this.totalPagesContacts = result.totalPagesContacts;
