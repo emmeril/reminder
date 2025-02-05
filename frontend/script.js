@@ -347,20 +347,20 @@ function reminderApp() {
       this.fetchReminders();
     },
 
-    prevPageContact() {
-      if (this.currentPageContact > 1) {
-        this.currentPageContact--;
+    prevPageContacts() {
+      if (this.currentPageContacts > 1) {
+        this.currentPageContacts--;
         this.fetchContacts();
       }
     },
-    nextPageContact() {
-      if (this.currentPageContact < this.totalPagesContact) {
+    nextPageContacts() {
+      if (this.currentPageContacts < this.totalPagesContacts) {
         this.currentPageContact++;
         this.fetchContacts();
       }
     },
-    changePageContact(pageContact) {
-      this.currentPageContact = pageContact;
+    changePageContacts(pageContact) {
+      this.currentPageContacts = pageContact;
       this.fetchContacts();
     },
 
