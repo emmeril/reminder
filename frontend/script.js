@@ -62,7 +62,7 @@ function reminderApp() {
     // Data kontak
     contacts: [],
     currentPageContacts: 1,
-    limitContacts: 5,
+    limitContacts: 1,
     totalPagesContacts: 1,
     contactForm: {
       name: "",
@@ -329,39 +329,65 @@ function reminderApp() {
 
     /* ------------------------ FITUR TAMBAHAN ------------------------ */
 
-    // Pagination
+    // Pagination reminder
     prevPage() {
       if (this.currentPage > 1) {
         this.currentPage--;
         this.fetchReminders();
       }
     },
+
+    get visiblePages() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      const range = 5; // Number of visible pages
+
+      const start = Math.max(1, current - Math.floor(range / 2));
+      const end = Math.min(total, start + range - 1);
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+
     nextPage() {
       if (this.currentPage < this.totalPages) {
         this.currentPage++;
         this.fetchReminders();
       }
     },
-    changePage(page) {
-      this.currentPage = page;
-      this.fetchReminders();
-    },
 
+
+    // Pagination kontak
     prevPageContacts() {
       if (this.currentPageContacts > 1) {
         this.currentPageContacts--;
         this.fetchContacts();
       }
     },
+
+    get visiblePagesContacts() {
+      const total = this.totalPagesContacts;
+      const current = this.currentPageContacts;
+      const range = 5; // Number of visible pages
+
+      const start = Math.max(1, current - Math.floor(range / 2));
+      const end = Math.min(total, start + range - 1);
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+
     nextPageContacts() {
       if (this.currentPageContacts < this.totalPagesContacts) {
-        this.currentPageContact++;
+        this.currentPageContacts++;
         this.fetchContacts();
       }
-    },
-    changePageContacts(pageContact) {
-      this.currentPageContacts = pageContact;
-      this.fetchContacts();
     },
 
     // Template pesan
