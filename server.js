@@ -99,7 +99,7 @@ app.post("/add-contact",authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar kontak dengan pagination
-app.get("/get-contacts",authenticateToken, (req, res) => {
+app.get("/get-contacts", (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
@@ -215,7 +215,7 @@ app.post("/schedule-reminder", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar pengingat dengan pagination
-app.get("/get-reminders",authenticateToken, (req, res) => {
+app.get("/get-reminders", (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
@@ -288,7 +288,7 @@ app.delete("/delete-reminder/:id", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar pengingat terkirim dengan pagination
-app.get("/get-sent-reminders", authenticateToken, (req, res) => {
+app.get("/get-sent-reminders", (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
