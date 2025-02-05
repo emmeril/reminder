@@ -207,9 +207,7 @@ function reminderApp() {
     async fetchReminders() {
       const result = await fetchData(
         `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
-        {
-          headers: { Authorization: `Bearer ${this.token}` },
-        }
+     
       );
       this.reminders = result.reminders;
       this.totalPages = result.totalPages;
@@ -296,9 +294,7 @@ function reminderApp() {
     async fetchContacts() {
       const result = await fetchData(
         `http://202.70.133.37:3000/get-contacts`,
-        {
-          headers: { Authorization: `Bearer ${this.token}` },
-        }
+  
       );
       this.contacts = result.contacts;
       this.totalPagesContacts = result.totalPagesContacts;
@@ -478,11 +474,7 @@ function reminderApp() {
       try {
         const response = await fetch(
           `http://202.70.133.37:3000/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
+    
         );
         const data = await response.json();
         this.sentReminders = data.sentReminders;
