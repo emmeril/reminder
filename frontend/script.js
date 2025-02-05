@@ -69,6 +69,12 @@ function reminderApp() {
       phoneNumber: "",
     },
 
+    // Data kontak yang sudah dikirim
+    sentReminders: [],
+    currentPageSentReminders: 1,
+    limitSentReminders: 5,
+    totalPagesSentReminders: 1,
+
     // Template pesan
     messageTemplates: [
       {
@@ -390,6 +396,36 @@ function reminderApp() {
       }
     },
 
+    // Pagination sent reminders
+    prevPageSentReminders() {
+      if (this.currentPageSentReminders > 1) {
+        this.currentPageSentReminders--;
+        this.fetchSentReminders();
+      }
+    },
+
+    get visiblePagesSentReminders() {
+      const total = this.totalPagesSentReminders;
+      const current = this.currentPageSentReminders;
+      const range = 5; // Number of visible pages
+
+      const start = Math.max(1, current - Math.floor(range / 2));
+      const end = Math.min(total, start + range - 1);
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+
+    nextPageSentReminders() {
+      if (this.currentPageSentReminders < this.totalPagesSentReminders) {
+        this.currentPageSentReminders++;
+        this.fetchSentReminders();
+      }
+    },
+
     // Template pesan
     applyTemplate(template) {
       // Cari kontak berdasarkan nomor telepon yang dipilih
@@ -429,12 +465,13 @@ function reminderApp() {
       window.location.href = "index.html";
     },
 
-    sentReminders: [],
+   
 
     async fetchSentReminders() {
       try {
         const response = await fetch(
-          "http://202.70.133.37:3000/get-sent-reminders",
+          `http://202.70.133.37:3000/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`
+          ,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -443,6 +480,7 @@ function reminderApp() {
         );
         const data = await response.json();
         this.sentReminders = data.sentReminders;
+        this.totalPagesSentReminders = data.totalPages;
       } catch (error) {
         console.error("Failed to fetch sent reminders:", error);
       }
