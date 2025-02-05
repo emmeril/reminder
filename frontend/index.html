@@ -32,7 +32,7 @@
                         </ul>
 
                         <form @submit.prevent="submit">
-                            <div class="form-group">
+                            <div class="form-group mb-3">
                                 <label>Username</label>
                                 <input type="text" class="form-control" x-model="form.username" required>
                             </div>
@@ -40,7 +40,7 @@
                                 <label>Password</label>
                                 <input type="password" class="form-control" x-model="form.password" required>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-block">
+                            <button type="submit" class="btn btn-primary btn-block my-3">
                                 <span x-text="isLogin ? 'Login' : 'Register'"></span>
                             </button>
                         </form>
