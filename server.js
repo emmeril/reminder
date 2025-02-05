@@ -100,9 +100,9 @@ app.post("/add-contact", (req, res) => {
 
 // Endpoint untuk mendapatkan daftar kontak dengan pagination
 app.get("/get-contacts", (req, res) => {
-  const { page = 1, limit = 5 } = req.query;
-  const pageNumber = parseInt(page, 10);
-  const limitNumber = parseInt(limit, 10);
+  const { pageContact = 1, limitContacts = 5 } = req.query;
+  const pageNumber = parseInt(pageContact, 10);
+  const limitNumber = parseInt(limitContacts, 10);
 
   const contactList = Array.from(contacts.values());
   const paginatedContacts = contactList.slice(
