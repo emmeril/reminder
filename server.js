@@ -98,10 +98,23 @@ app.post("/add-contact", (req, res) => {
   res.json({ message: "Kontak berhasil ditambahkan!", contact });
 });
 
-// Endpoint untuk mendapatkan daftar kontak
+// Endpoint untuk mendapatkan daftar kontak dengan pagination
 app.get("/get-contacts", (req, res) => {
+  const { page = 1, limit = 5 } = req.query;
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+
   const contactList = Array.from(contacts.values());
-  res.json({ contacts: contactList });
+  const paginatedContacts = contactList.slice(
+    (pageNumber - 1) * limitNumber,
+    pageNumber * limitNumber
+  );
+
+  res.json({
+    page: pageNumber,
+    totalPages: Math.ceil(contactList.length / limitNumber),
+    contacts: paginatedContacts,
+  });
 });
 
 // Endpoint untuk menghapus kontak berdasarkan ID
@@ -274,10 +287,23 @@ app.delete("/delete-reminder/:id", authenticateToken, (req, res) => {
   res.json({ message: "Pengingat berhasil dihapus!" });
 });
 
-// Endpoint untuk mendapatkan daftar pengingat terkirim
+// Endpoint untuk mendapatkan daftar pengingat terkirim dengan pagination
 app.get("/get-sent-reminders", authenticateToken, (req, res) => {
+  const { page = 1, limit = 5 } = req.query;
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+
   const sentReminderList = Array.from(sentReminders.values());
-  res.json({ sentReminders: sentReminderList });
+  const paginatedSentReminders = sentReminderList.slice(
+    (pageNumber - 1) * limitNumber,
+    pageNumber * limitNumber
+  );
+
+  res.json({
+    page: pageNumber,
+    totalPages: Math.ceil(sentReminderList.length / limitNumber),
+    sentReminders: paginatedSentReminders,
+  });
 });
 
 // Endpoint untuk menjadwalkan ulang pengingat terkirim
@@ -319,7 +345,10 @@ app.post("/reschedule-reminder", authenticateToken, (req, res) => {
   // Tambahkan pengingat ke Map
   reminders.set(reminder.id, reminder);
 
-  res.json({ message: "Pengingat pembayaran berhasil dijadwalkan ulang!", reminder });
+  res.json({
+    message: "Pengingat pembayaran berhasil dijadwalkan ulang!",
+    reminder,
+  });
 });
 
 // Fungsi untuk mengirim pesan ke WhatsApp
