@@ -5,10 +5,8 @@ function auth() {
     form: { username: "", password: "" },
 
     async submit() {
-      const endpoint = this.isLogin ? "/login" : "/register";
-
       try {
-        const response = await fetch(`http://202.70.133.37:3000${endpoint}`, {
+        const response = await fetch("http://202.70.133.37:3000/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(this.form),
@@ -19,11 +17,8 @@ function auth() {
 
         if (this.isLogin) {
           localStorage.setItem("token", data.token);
+          localStorage.setItem("username", this.form.username);
           window.location.href = "app.html";
-        } else {
-          alert("Registration successful! Please login.");
-          this.isLogin = true;
-          this.form = { username: "", password: "" };
         }
       } catch (error) {
         alert(error.message);
@@ -41,9 +36,23 @@ async function fetchData(url, options = {}) {
   return response.json();
 }
 
+// Function to check if user is authenticated
+function checkAuthentication() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.href = "index.html";
+  }
+}
+
+// Call checkAuthentication on app.html load
+if (window.location.pathname === "app.html") {
+  checkAuthentication();
+}
+
 function reminderApp() {
   return {
     token: localStorage.getItem("token"),
+    username: localStorage.getItem("username"),
     // Data form reminder
     form: {
       phoneNumber: "",
@@ -56,7 +65,7 @@ function reminderApp() {
     // Data reminders
     reminders: [],
     currentPage: 1,
-    limit: 5,
+    limit: 2,
     totalPages: 1,
 
     // Data kontak
@@ -129,7 +138,7 @@ function reminderApp() {
       // Auto-refresh setiap 5 menit
       setInterval(() => {
         this.fetchReminders();
-      }, 3000); // 5 menit dalam milidetik
+      }, 60000); // 5 menit dalam milidetik
     },
 
     // Di dalam function app() - script.js
@@ -365,7 +374,6 @@ function reminderApp() {
       }
     },
 
-
     // Pagination kontak
     prevPageContacts() {
       if (this.currentPageContacts > 1) {
@@ -462,16 +470,14 @@ function reminderApp() {
 
     logout() {
       localStorage.removeItem("token");
+      localStorage.removeItem("username");
       window.location.href = "index.html";
     },
-
-   
 
     async fetchSentReminders() {
       try {
         const response = await fetch(
-          `http://202.70.133.37:3000/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`
-          ,
+          `http://202.70.133.37:3000/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
