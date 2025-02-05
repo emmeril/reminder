@@ -87,25 +87,25 @@ function reminderApp() {
     // Template pesan
     messageTemplates: [
       {
-        name: "Pembayaran Listrik",
+        name: "Member Rp 100.000",
         content:
-          "Hai [Nama], jangan lupa bayar tagihan listrik Rp [Jumlah] sebelum [Tanggal].",
+          "Hai [Nama], jangan lupa bayar tagihan Emmeril Hotspot untuk bulan [Bulan], [Tanggal] sebesar Rp 100.000, pembayaran bisa melalui transfer ke BCA 134-266-9497 a/n Hafriyanto. konfirmasi pembayaran ke nomor ini ya. Terima kasih.",
       },
       {
-        name: "Pembayaran Sekolah",
+        name: "Member Rp 40.000",
         content:
-          "Reminder pembayaran SPP sekolah untuk bulan [Bulan] sebesar Rp [Jumlah].",
-      },
-      {
-        name: "Pembayaran Cicilan",
-        content:
-          "Pengingat pembayaran cicilan ke-[Angka] sebesar Rp [Jumlah] jatuh tempo [Tanggal].",
-      },
-      {
-        name: "Tagihan Air",
-        content:
-          "Pengingat pembayaran tagihan air bulan [Bulan] sebesar Rp [Jumlah].",
-      },
+          "Hai [Nama], jangan lupa bayar tagihan Emmeril Hotspot untuk bulan [Bulan], [Tanggal] sebesar Rp 40.000, pembayaran bisa melalui transfer ke BCA 134-266-9497 a/n Hafriyanto. konfirmasi pembayaran ke nomor ini ya. Terima kasih.",
+     },
+      // {
+      //   name: "Pembayaran Cicilan",
+      //   content:
+      //     "Pengingat pembayaran cicilan ke-[Angka] sebesar Rp [Jumlah] jatuh tempo [Tanggal].",
+      // },
+      // {
+      //   name: "Tagihan Air",
+      //   content:
+      //     "Pengingat pembayaran tagihan air bulan [Bulan] sebesar Rp [Jumlah].",
+      // },
     ],
 
     // State dropdown
