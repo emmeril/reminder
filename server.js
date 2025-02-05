@@ -7,12 +7,34 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const Joi = require("joi");
 const { execSync } = require("child_process");
+const helmet = require("helmet");
+const compression = require("compression");
+const rateLimit = require("express-rate-limit");
+const slowDown = require("express-slow-down");
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 app.use(cors());
 app.use(express.json()); // Menggunakan express.json() sebagai pengganti bodyParser
+app.use(helmet());
+app.use(compression());
+
+// Rate limiting to prevent abuse
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+// Slow down excessive requests
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 50, // allow 50 requests per windowMs before slowing down
+  delayMs: () => 500, // add 500ms delay per request after exceeding limit
+});
+
+app.use(speedLimiter);
 
 let reminders = new Map(); // Menggunakan Map untuk pengingat
 let sentReminders = new Map(); // Menggunakan Map untuk pengingat terkirim
@@ -84,7 +106,7 @@ app.post("/login", async (req, res) => {
 // app.use(authenticateToken);
 
 // Endpoint untuk menambahkan kontak
-app.post("/add-contact",authenticateToken, (req, res) => {
+app.post("/add-contact", authenticateToken, (req, res) => {
   const { error, value } = contactSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
@@ -118,7 +140,7 @@ app.get("/get-contacts", (req, res) => {
 });
 
 // Endpoint untuk menghapus kontak berdasarkan ID
-app.delete("/delete-contact/:id",authenticateToken, (req, res) => {
+app.delete("/delete-contact/:id", authenticateToken, (req, res) => {
   const id = parseInt(req.params.id);
 
   if (!contacts.delete(id)) {

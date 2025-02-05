@@ -65,13 +65,13 @@ function reminderApp() {
     // Data reminders
     reminders: [],
     currentPage: 1,
-    limit: 2,
+    limit: 5,
     totalPages: 1,
 
     // Data kontak
     contacts: [],
     currentPageContacts: 1,
-    limitContacts: 1,
+    limitContacts: 5,
     totalPagesContacts: 1,
     contactForm: {
       name: "",
@@ -81,7 +81,7 @@ function reminderApp() {
     // Data kontak yang sudah dikirim
     sentReminders: [],
     currentPageSentReminders: 1,
-    limitSentReminders: 1,
+    limitSentReminders: 5,
     totalPagesSentReminders: 1,
 
     // Template pesan
@@ -145,10 +145,7 @@ function reminderApp() {
     async checkWhatsAppStatus() {
       try {
         const status = await fetchData(
-          "http://202.70.133.37:3000/whatsapp-status",
-          {
-            headers: { Authorization: `Bearer ${this.token}` },
-          }
+          "http://202.70.133.37:3000/whatsapp-status"
         );
 
         if (!status.authenticated) {
@@ -206,8 +203,7 @@ function reminderApp() {
     // Ambil data reminders
     async fetchReminders() {
       const result = await fetchData(
-        `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
-     
+        `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`
       );
       this.reminders = result.reminders;
       this.totalPages = result.totalPages;
@@ -290,11 +286,10 @@ function reminderApp() {
 
     /* ------------------------ METHOD UNTUK KONTAK ------------------------ */
 
-    // Ambil data kontak
+    // Fetch data kontak dengan pagination yang benar
     async fetchContacts() {
       const result = await fetchData(
-        `http://202.70.133.37:3000/get-contacts`,
-  
+        `http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`
       );
       this.contacts = result.contacts;
       this.totalPagesContacts = result.totalPagesContacts;
@@ -338,98 +333,6 @@ function reminderApp() {
       this.isContactDropdownOpen = false;
     },
 
-    /* ------------------------ FITUR TAMBAHAN ------------------------ */
-
-    // Pagination reminder
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-        this.fetchReminders();
-      }
-    },
-
-    get visiblePages() {
-      const total = this.totalPages;
-      const current = this.currentPage;
-      const range = 5; // Number of visible pages
-
-      const start = Math.max(1, current - Math.floor(range / 2));
-      const end = Math.min(total, start + range - 1);
-
-      const pages = [];
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
-    },
-
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-        this.fetchReminders();
-      }
-    },
-
-    // Pagination kontak
-    prevPageContacts() {
-      if (this.currentPageContacts > 1) {
-        this.currentPageContacts--;
-        this.fetchContacts();
-      }
-    },
-
-    get visiblePagesContacts() {
-      const total = this.totalPagesContacts;
-      const current = this.currentPageContacts;
-      const range = 5; // Number of visible pages
-
-      const start = Math.max(1, current - Math.floor(range / 2));
-      const end = Math.min(total, start + range - 1);
-
-      const pages = [];
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
-    },
-
-    nextPageContacts() {
-      if (this.currentPageContacts < this.totalPagesContacts) {
-        this.currentPageContacts++;
-        this.fetchContacts();
-      }
-    },
-
-    // Pagination sent reminders
-    prevPageSentReminders() {
-      if (this.currentPageSentReminders > 1) {
-        this.currentPageSentReminders--;
-        this.fetchSentReminders();
-      }
-    },
-
-    get visiblePagesSentReminders() {
-      const total = this.totalPagesSentReminders;
-      const current = this.currentPageSentReminders;
-      const range = 5; // Number of visible pages
-
-      const start = Math.max(1, current - Math.floor(range / 2));
-      const end = Math.min(total, start + range - 1);
-
-      const pages = [];
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
-    },
-
-    nextPageSentReminders() {
-      if (this.currentPageSentReminders < this.totalPagesSentReminders) {
-        this.currentPageSentReminders++;
-        this.fetchSentReminders();
-      }
-    },
-
     // Template pesan
     applyTemplate(template) {
       // Cari kontak berdasarkan nomor telepon yang dipilih
@@ -456,25 +359,17 @@ function reminderApp() {
       this.isDropdownOpen = false;
     },
 
-    // Toggle dropdown
-    toggleDropdown() {
-      this.isDropdownOpen = !this.isDropdownOpen;
-    },
-    toggleContactDropdown() {
-      this.isContactDropdownOpen = !this.isContactDropdownOpen;
-    },
-
-    logout() {
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      window.location.href = "index.html";
-    },
+    /* ------------------------ METHOD UNTUK REMINDER YANG SUDAH DIKIRIM ------------------------ */
 
     async fetchSentReminders() {
       try {
         const response = await fetch(
           `http://202.70.133.37:3000/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`,
-    
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
         );
         const data = await response.json();
         this.sentReminders = data.sentReminders;
@@ -519,6 +414,113 @@ function reminderApp() {
         console.error("Failed to reschedule reminder:", error);
         this.showToast("Failed to reschedule reminder", "danger");
       }
+    },
+
+    /* ------------------------ FITUR TAMBAHAN ------------------------ */
+
+    // Pagination reminder
+    prevPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+        this.fetchReminders();
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+        this.fetchReminders();
+      }
+    },
+
+    get visiblePages() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      const range = 5;
+
+      const start = Math.max(1, current - Math.floor(range / 2));
+      const end = Math.min(total, start + range - 1);
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+
+    // Navigasi pagination kontak
+    prevPageContacts() {
+      if (this.currentPageContacts > 1) {
+        this.currentPageContacts--;
+        this.fetchContacts();
+      }
+    },
+
+    nextPageContacts() {
+      if (this.currentPageContacts < this.totalPagesContacts) {
+        this.currentPageContacts++;
+        this.fetchContacts();
+      }
+    },
+
+    get visiblePagesContacts() {
+      const total = this.totalPagesContacts;
+      const current = this.currentPageContacts;
+      const range = 5; // Jumlah halaman yang terlihat
+
+      const start = Math.max(1, current - Math.floor(range / 2));
+      const end = Math.min(total, start + range - 1);
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+
+    // Pagination sent reminders
+    prevPageSentReminders() {
+      if (this.currentPageSentReminders > 1) {
+        this.currentPageSentReminders--;
+        this.fetchSentReminders();
+      }
+    },
+
+    nextPageSentReminders() {
+      if (this.currentPageSentReminders < this.totalPagesSentReminders) {
+        this.currentPageSentReminders++;
+        this.fetchSentReminders();
+      }
+    },
+
+    get visiblePagesSentReminders() {
+      const total = this.totalPagesSentReminders;
+      const current = this.currentPageSentReminders;
+      const range = 5;
+
+      const start = Math.max(1, current - Math.floor(range / 2));
+      const end = Math.min(total, start + range - 1);
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+
+    // Toggle dropdown
+    toggleDropdown() {
+      this.isDropdownOpen = !this.isDropdownOpen;
+    },
+    toggleContactDropdown() {
+      this.isContactDropdownOpen = !this.isContactDropdownOpen;
+    },
+
+    // Logout
+    logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      window.location.href = "index.html";
     },
   };
 }
