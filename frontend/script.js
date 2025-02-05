@@ -62,7 +62,7 @@ function reminderApp() {
     // Data kontak
     contacts: [],
     currentPageContacts: 1,
-    limitContacts: 5,
+    limitContacts: 2,
     totalPagesContacts: 1,
     contactForm: {
       name: "",
@@ -280,7 +280,7 @@ function reminderApp() {
     // Ambil data kontak
     async fetchContacts() {
       const result = await fetchData(
-        "http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}",
+        `http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`,
         {
           headers: { Authorization: `Bearer ${this.token}` },
         }

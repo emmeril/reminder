@@ -112,7 +112,7 @@ app.get("/get-contacts", (req, res) => {
 
   res.json({
     page: pageNumber,
-    totalPages: Math.ceil(contactList.length / limitNumber),
+    totalPagesContacts: Math.ceil(contactList.length / limitNumber),
     contacts: paginatedContacts,
   });
 });
@@ -215,7 +215,7 @@ app.post("/schedule-reminder", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar pengingat dengan pagination
-app.get("/get-reminders", authenticateToken, (req, res) => {
+app.get("/get-reminders", (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
