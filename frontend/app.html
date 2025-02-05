@@ -183,9 +183,9 @@
                                 <li class="page-item" :class="{ 'disabled': currentPageContacts === 1 }">
                                     <button class="page-link" @click="prevPageContacts">Previous</button>
                                 </li>
-                                <template x-for="page in totalPagesContacts" :key="page">
+                                <template x-for="pageContact in totalPagesContacts" :key="pageContact">
                                     <li class="page-item" :class="{ 'active': page === currentPageContacts }">
-                                        <button class="page-link" @click="changePageContacts(page)" x-text="page"></button>
+                                        <button class="page-link" @click="changePageContacts(page)" x-text="pageContact"></button>
                                     </li>
                                 </template>
                                 <li class="page-item" :class="{ 'disabled': currentPageContacts === totalPagesContacts }">

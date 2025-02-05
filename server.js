@@ -111,7 +111,7 @@ app.get("/get-contacts", (req, res) => {
   );
 
   res.json({
-    page: pageNumber,
+    pageContact: pageNumber,
     totalPagesContacts: Math.ceil(contactList.length / limitNumber),
     contacts: paginatedContacts,
   });

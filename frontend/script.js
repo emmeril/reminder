@@ -62,7 +62,7 @@ function reminderApp() {
     // Data kontak
     contacts: [],
     currentPageContacts: 1,
-    limitContacts: 2,
+    limitContacts: 5,
     totalPagesContacts: 1,
     contactForm: {
       name: "",
@@ -359,8 +359,8 @@ function reminderApp() {
         this.fetchContacts();
       }
     },
-    changePageContact(page) {
-      this.currentPageContact = page;
+    changePageContact(pageContact) {
+      this.currentPageContact = pageContact;
       this.fetchContacts();
     },
 
