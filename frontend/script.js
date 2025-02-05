@@ -81,7 +81,7 @@ function reminderApp() {
     // Data kontak yang sudah dikirim
     sentReminders: [],
     currentPageSentReminders: 1,
-    limitSentReminders: 5,
+    limitSentReminders: 1,
     totalPagesSentReminders: 1,
 
     // Template pesan
@@ -486,7 +486,7 @@ function reminderApp() {
         );
         const data = await response.json();
         this.sentReminders = data.sentReminders;
-        this.totalPagesSentReminders = data.totalPages;
+        this.totalPagesSentReminders = data.totalPagesSentReminders;
       } catch (error) {
         console.error("Failed to fetch sent reminders:", error);
       }
