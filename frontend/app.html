@@ -178,6 +178,21 @@
                                 </div>
                             </template>
                         </div>
+                        <nav aria-label="Page navigation example" class="mt-3">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item" :class="{ 'disabled': currentPageContacts === 1 }">
+                                    <button class="page-link" @click="prevPageContacts">Previous</button>
+                                </li>
+                                <template x-for="page in totalPagesContacts" :key="page">
+                                    <li class="page-item" :class="{ 'active': page === currentPageContacts }">
+                                        <button class="page-link" @click="changePageContacts(page)" x-text="page"></button>
+                                    </li>
+                                </template>
+                                <li class="page-item" :class="{ 'disabled': currentPageContacts === totalPagesContacts }">
+                                    <button class="page-link" @click="nextPageContacts">Next</button>
+                                </li>
+                            </ul>
+                        </nav>
                     </div>
                 </div>
             </div>

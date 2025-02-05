@@ -8,7 +8,7 @@ function auth() {
       const endpoint = this.isLogin ? "/login" : "/register";
 
       try {
-        const response = await fetch(`http://localhost:3000${endpoint}`, {
+        const response = await fetch(`http://202.70.133.37:3000${endpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(this.form),
@@ -61,6 +61,9 @@ function reminderApp() {
 
     // Data kontak
     contacts: [],
+    currentPageContacts: 1,
+    limitContacts: 5,
+    totalPagesContacts: 1,
     contactForm: {
       name: "",
       phoneNumber: "",
@@ -127,7 +130,7 @@ function reminderApp() {
     async checkWhatsAppStatus() {
       try {
         const status = await fetchData(
-          "http://localhost:3000/whatsapp-status",
+          "http://202.70.133.37:3000/whatsapp-status",
           {
             headers: { Authorization: `Bearer ${this.token}` },
           }
@@ -188,7 +191,7 @@ function reminderApp() {
     // Ambil data reminders
     async fetchReminders() {
       const result = await fetchData(
-        `http://127.0.0.1:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
+        `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
         {
           headers: { Authorization: `Bearer ${this.token}` },
         }
@@ -200,8 +203,8 @@ function reminderApp() {
     // Submit form reminder
     async submitForm() {
       const url = this.form.reminderId
-        ? `http://127.0.0.1:3000/update-reminder/${this.form.reminderId}`
-        : "http://127.0.0.1:3000/schedule-reminder";
+        ? `http://202.70.133.37:3000/update-reminder/${this.form.reminderId}`
+        : "http://202.70.133.37:3000/schedule-reminder";
 
       const method = this.form.reminderId ? "PUT" : "POST";
 
@@ -260,7 +263,7 @@ function reminderApp() {
     // Hapus reminder
     async handleDelete(id) {
       const result = await fetchData(
-        `http://127.0.0.1:3000/delete-reminder/${id}`,
+        `http://202.70.133.37:3000/delete-reminder/${id}`,
         {
           headers: { Authorization: `Bearer ${this.token}` },
           method: "DELETE",
@@ -276,15 +279,19 @@ function reminderApp() {
 
     // Ambil data kontak
     async fetchContacts() {
-      const result = await fetchData("http://127.0.0.1:3000/get-contacts", {
-        headers: { Authorization: `Bearer ${this.token}` },
-      });
+      const result = await fetchData(
+        "http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}",
+        {
+          headers: { Authorization: `Bearer ${this.token}` },
+        }
+      );
       this.contacts = result.contacts;
+      this.totalPagesContacts = result.totalPagesContacts;
     },
 
     // Submit form kontak
     async submitContactForm() {
-      const result = await fetchData("http://127.0.0.1:3000/add-contact", {
+      const result = await fetchData("http://202.70.133.37:3000/add-contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -302,7 +309,7 @@ function reminderApp() {
     // Hapus kontak
     async handleDeleteContact(id) {
       const result = await fetchData(
-        `http://127.0.0.1:3000/delete-contact/${id}`,
+        `http://202.70.133.37:3000/delete-contact/${id}`,
         {
           headers: { Authorization: `Bearer ${this.token}` },
           method: "DELETE",
@@ -338,6 +345,23 @@ function reminderApp() {
     changePage(page) {
       this.currentPage = page;
       this.fetchReminders();
+    },
+
+    prevPageContact() {
+      if (this.currentPageContact > 1) {
+        this.currentPageContact--;
+        this.fetchContacts();
+      }
+    },
+    nextPageContact() {
+      if (this.currentPageContact < this.totalPagesContact) {
+        this.currentPageContact++;
+        this.fetchContacts();
+      }
+    },
+    changePageContact(page) {
+      this.currentPageContact = page;
+      this.fetchContacts();
     },
 
     // Template pesan
@@ -384,7 +408,7 @@ function reminderApp() {
     async fetchSentReminders() {
       try {
         const response = await fetch(
-          "http://127.0.0.1:3000/get-sent-reminders",
+          "http://202.70.133.37:3000/get-sent-reminders",
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -401,7 +425,7 @@ function reminderApp() {
     async rescheduleReminder(reminder) {
       try {
         const response = await fetch(
-          "http://127.0.0.1:3000/reschedule-reminder",
+          "http://202.70.133.37:3000/reschedule-reminder",
           {
             method: "POST",
             headers: {

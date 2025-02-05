@@ -81,7 +81,7 @@ app.post("/login", async (req, res) => {
 });
 
 // Protected Routes
-app.use(authenticateToken);
+// app.use(authenticateToken);
 
 // Endpoint untuk menambahkan kontak
 app.post("/add-contact", (req, res) => {
