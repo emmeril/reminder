@@ -328,7 +328,7 @@ function reminderApp() {
       }
 
       // Pastikan tidak melebihi panjang maksimal
-      return cleaned.substring(0, 13); // 62 + 11 digit
+      return cleaned.substring(0, 14); // 62 + 11 digit
     },
 
     // Submit form kontak
