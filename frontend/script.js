@@ -309,8 +309,35 @@ function reminderApp() {
       this.totalPagesContacts = result.totalPagesContacts;
     },
 
+    // Format nomor telepon
+    formatPhoneNumber(input) {
+      // Hapus semua karakter non-digit kecuali '+'
+      let cleaned = input.replace(/[^\d+]/g, "");
+
+      // Handle nomor yang diawali 0
+      if (cleaned.startsWith("0")) {
+        cleaned = "62" + cleaned.slice(1);
+      }
+      // Handle nomor yang diawali 8 (tanpa kode negara)
+      else if (cleaned.startsWith("8") && !cleaned.startsWith("62")) {
+        cleaned = "62" + cleaned;
+      }
+      // Handle nomor yang diawali +62 atau 62 tanpa +
+      else if (cleaned.startsWith("+62")) {
+        cleaned = cleaned.slice(1); // Hapus '+'
+      }
+
+      // Pastikan tidak melebihi panjang maksimal
+      return cleaned.substring(0, 13); // 62 + 11 digit
+    },
+
     // Submit form kontak
     async submitContactForm() {
+      // Format nomor telepon sebelum dikirim
+      this.contactForm.phoneNumber = this.formatPhoneNumber(
+        this.contactForm.phoneNumber
+      );
+
       const result = await fetchData("http://202.70.133.37:3000/add-contact", {
         method: "POST",
         headers: {
