@@ -11,14 +11,23 @@ const helmet = require("helmet");
 const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const slowDown = require("express-slow-down");
-
+const fs = require("fs");
+const path = require("path");
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET;
 
 app.use(cors());
-app.use(express.json()); // Menggunakan express.json() sebagai pengganti bodyParser
+app.use(express.json());
 app.use(helmet());
 app.use(compression());
+
+let reminders = new Map();
+let sentReminders = new Map();
+let contacts = new Map();
+let qrCodeData = null;
+let isAuthenticated = false;
+
+// Simpan secret key JWT di .env
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Rate limiting to prevent abuse
 const limiter = rateLimit({
@@ -26,20 +35,92 @@ const limiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
-
 // Slow down excessive requests
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 50, // allow 50 requests per windowMs before slowing down
   delayMs: () => 500, // add 500ms delay per request after exceeding limit
 });
-
 app.use(speedLimiter);
 
-let reminders = new Map(); // Menggunakan Map untuk pengingat
-let sentReminders = new Map(); // Menggunakan Map untuk pengingat terkirim
-// Data untuk menyimpan daftar kontak
-let contacts = new Map();
+// simpan file kontak di database/contacts.json
+const contactsFilePath = path.join(__dirname, "database", "contacts.json");
+
+// Fungsi untuk menyimpan data ke file JSON
+const saveContactsToFile = (contacts) => {
+  fs.writeFileSync(
+    contactsFilePath,
+    JSON.stringify([...contacts.values()], null, 2)
+  );
+};
+
+// Fungsi untuk memuat data dari file JSON (jika file ada)
+const loadContactsFromFile = () => {
+  if (fs.existsSync(contactsFilePath)) {
+    const data = fs.readFileSync(contactsFilePath, "utf-8");
+    const parsedContacts = JSON.parse(data);
+    parsedContacts.forEach((contact) => {
+      contacts.set(contact.id, contact);
+    });
+  }
+};
+
+// Muat data kontak saat aplikasi dijalankan
+loadContactsFromFile();
+
+// simpan file pengingat di database/reminders.json
+const remindersFilePath = path.join(__dirname, "database", "reminders.json");
+
+// Fungsi untuk menyimpan data ke file JSON
+const saveRemindersToFile = (reminders) => {
+  fs.writeFileSync(
+    remindersFilePath,
+    JSON.stringify([...reminders.values()], null, 2)
+  );
+};
+
+// Fungsi untuk memuat data dari file JSON (jika file ada)
+const loadRemindersFromFile = () => {
+  if (fs.existsSync(remindersFilePath)) {
+    const data = fs.readFileSync(remindersFilePath, "utf-8");
+    const parsedReminders = JSON.parse(data);
+    parsedReminders.forEach((reminder) => {
+      reminders.set(reminder.id, reminder);
+    });
+  }
+};
+
+// Muat data pengingat saat aplikasi dijalankan
+loadRemindersFromFile();
+
+// simpan file pengingat terkirim di database/sent_reminders.json
+const sentRemindersFilePath = path.join(
+  __dirname,
+  "database",
+  "sent_reminders.json"
+);
+
+// Fungsi untuk menyimpan data ke file JSON
+const saveSentRemindersToFile = (sentReminders) => {
+  fs.writeFileSync(
+    sentRemindersFilePath,
+    JSON.stringify([...sentReminders.values()], null, 2)
+  );
+};
+
+// Fungsi untuk memuat data dari file JSON (jika file ada)
+const loadSentRemindersFromFile = () => {
+  if (fs.existsSync(sentRemindersFilePath)) {
+    const data = fs.readFileSync(sentRemindersFilePath, "utf-8");
+    const parsedSentReminders = JSON.parse(data);
+    parsedSentReminders.forEach((sentReminder) => {
+      sentReminders.set(sentReminder.id, sentReminder);
+    });
+  }
+};
+
+// Muat data pengingat terkirim saat aplikasi dijalankan
+loadSentRemindersFromFile();
 
 // Middleware
 const authenticateToken = (req, res, next) => {
@@ -76,83 +157,6 @@ const reminderSchema = Joi.object({
   message: Joi.string().required(),
 });
 
-/**
- * Endpoint for user login
- */
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-
-  // Retrieve data from .env
-  const envUsername = process.env.ADMIN_USERNAME;
-  const envPassword = process.env.ADMIN_PASSWORD;
-
-  if (!envUsername || !envPassword) {
-    return res
-      .status(500)
-      .json({ message: "Username atau password belum dikonfigurasi di .env" });
-  }
-
-  // Validate username & password
-  if (username !== envUsername || password !== envPassword) {
-    return res.status(401).json({ message: "Username atau password salah" });
-  }
-
-  // Create JWT token
-  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
-  res.json({ token });
-});
-
-// Protected Routes
-// app.use(authenticateToken);
-
-// Endpoint untuk menambahkan kontak
-app.post("/add-contact", authenticateToken, (req, res) => {
-  const { error, value } = contactSchema.validate(req.body);
-  if (error) {
-    return res.status(400).json({ message: error.details[0].message });
-  }
-
-  const { name, phoneNumber } = value;
-  const id = Date.now(); // ID unik menggunakan timestamp
-  const contact = { id, name, phoneNumber };
-
-  contacts.set(id, contact);
-  res.json({ message: "Kontak berhasil ditambahkan!", contact });
-});
-
-// Endpoint untuk mendapatkan daftar kontak dengan pagination
-app.get("/get-contacts", authenticateToken, (req, res) => {
-  const { page = 1, limit = 5 } = req.query;
-  const pageNumber = parseInt(page, 10);
-  const limitNumber = parseInt(limit, 10);
-
-  const contactList = Array.from(contacts.values());
-  const paginatedContacts = contactList.slice(
-    (pageNumber - 1) * limitNumber,
-    pageNumber * limitNumber
-  );
-
-  res.json({
-    page: pageNumber,
-    totalPagesContacts: Math.ceil(contactList.length / limitNumber),
-    contacts: paginatedContacts,
-  });
-});
-
-// Endpoint untuk menghapus kontak berdasarkan ID
-app.delete("/delete-contact/:id", authenticateToken, (req, res) => {
-  const id = parseInt(req.params.id);
-
-  if (!contacts.delete(id)) {
-    return res.status(404).json({ message: "Kontak tidak ditemukan!" });
-  }
-
-  res.json({ message: "Kontak berhasil dihapus!" });
-});
-
-let qrCodeData = null;
-let isAuthenticated = false;
-
 // Ensure necessary dependencies are installed on Ubuntu Server 20.04
 if (process.platform === "linux") {
   try {
@@ -186,16 +190,159 @@ whatsappClient.on("ready", () => {
   qrCodeData = null;
 });
 
-// Endpoint untuk mendapatkan status WhatsApp
-app.get("/whatsapp-status", authenticateToken, (req, res) => {
+// Fungsi untuk mengirim pesan ke WhatsApp
+const sendWhatsAppMessage = async (phoneNumber, message) => {
+  try {
+    const chatId = `${phoneNumber}@c.us`;
+    await whatsappClient.sendMessage(chatId, message);
+    console.log(`Pesan berhasil dikirim ke ${phoneNumber}`);
+  } catch (error) {
+    console.error("Gagal mengirim pesan:", error);
+    throw error;
+  }
+};
+
+// Fungsi untuk menjalankan cron job
+cron.schedule("* * * * *", () => {
+  const now = new Date();
+  console.log(`Menjalankan cron job pada: ${now}`);
+
+  // Loop through reminders
+  reminders.forEach((reminder) => {
+    // Check if the reminder time has passed
+    if (now >= reminder.reminderDateTime) {
+      // Send a WhatsApp message
+      const message = `Pengingat pembayaran: ${reminder.message}`;
+      sendWhatsAppMessage(reminder.phoneNumber, message);
+
+      // Add reminder to sent reminders
+      sentReminders.set(reminder.id, reminder);
+      reminders.delete(reminder.id);
+    }
+  });
+
+  // Save reminders to file
+  saveRemindersToFile(reminders);
+  saveSentRemindersToFile(sentReminders);
+});
+
+/**
+ * Endpoint for user login
+ */
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  // Retrieve data from .env
+  const envUsername = process.env.ADMIN_USERNAME;
+  const envPassword = process.env.ADMIN_PASSWORD;
+
+  if (!envUsername || !envPassword) {
+    return res
+      .status(500)
+      .json({ message: "Username atau password belum dikonfigurasi di .env" });
+  }
+
+  // Validate username & password
+  if (username !== envUsername || password !== envPassword) {
+    return res.status(401).json({ message: "Username atau password salah" });
+  }
+
+  // Create JWT token
+  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
+  res.json({ token });
+});
+
+// Endpoint untuk menambahkan kontak
+app.post("/add-contact", authenticateToken, (req, res) => {
+  const { error, value } = contactSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const { name, phoneNumber } = value;
+  const id = Date.now(); // ID unik menggunakan timestamp
+  const contact = { id, name, phoneNumber };
+
+  // Tambahkan kontak ke Map
+  contacts.set(id, contact);
+
+  // Simpan kontak ke file JSON
+  saveContactsToFile(contacts);
+
+  res.json({ message: "Kontak berhasil ditambahkan!", contact });
+});
+
+// Endpoint untuk mendapatkan daftar kontak dengan pagination
+app.get("/get-contacts", authenticateToken, (req, res) => {
+  const { page = 1, limit = 5 } = req.query;
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+
+  // Pastikan data kontak dimuat dari file JSON jika belum dimuat
+  if (contacts.size === 0 && fs.existsSync(contactsFilePath)) {
+    loadContactsFromFile(); // Muat data dari file JSON ke Map
+  }
+
+  const contactList = Array.from(contacts.values());
+  const paginatedContacts = contactList.slice(
+    (pageNumber - 1) * limitNumber,
+    pageNumber * limitNumber
+  );
+
   res.json({
-    authenticated: isAuthenticated,
-    qrCode: qrCodeData,
+    page: pageNumber,
+    totalPagesContacts: Math.ceil(contactList.length / limitNumber),
+    contacts: paginatedContacts,
   });
 });
 
+// endpoint untuk memperbarui kontak berdasarkan ID
+app.put("/update-contact/:id", authenticateToken, (req, res) => {
+  const { id } = req.params; // Ambil ID dari parameter URL
+  const contactId = parseInt(id, 10); // Pastikan ID berupa integer
+  const { error, value } = contactSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const { name, phoneNumber } = value;
+
+  // Cek apakah kontak dengan ID tersebut ada
+  if (!contacts.has(contactId)) {
+    return res.status(404).json({ message: "Kontak tidak ditemukan!" });
+  }
+
+  // Update data kontak
+  const updatedContact = { id: contactId, name, phoneNumber };
+  contacts.set(contactId, updatedContact);
+
+  // Simpan kontak ke file JSON
+  saveContactsToFile(contacts);
+
+  res.json({ message: "Kontak berhasil diperbarui!", contact: updatedContact });
+});
+
+// Endpoint untuk menghapus kontak berdasarkan ID
+app.delete("/delete-contact/:id", authenticateToken, (req, res) => {
+  const id = parseInt(req.params.id, 10); // Pastikan ID berupa integer
+
+  // Cek apakah kontak dengan ID tersebut ada
+  if (!contacts.has(id)) {
+    return res.status(404).json({ message: "Kontak tidak ditemukan!" });
+  }
+
+  // Hapus kontak dari Map
+  contacts.delete(id);
+
+  // Simpan perubahan ke file JSON
+  saveContactsToFile(contacts);
+
+  res.json({ message: "Kontak berhasil dihapus!" });
+});
+
 // Endpoint untuk menambahkan pengingat
-app.post("/schedule-reminder", authenticateToken, (req, res) => {
+app.post("/add-reminder", authenticateToken, (req, res) => {
   const { error, value } = reminderSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
@@ -233,7 +380,10 @@ app.post("/schedule-reminder", authenticateToken, (req, res) => {
   // Tambahkan pengingat ke Map
   reminders.set(reminder.id, reminder);
 
-  res.json({ message: "Pengingat pembayaran berhasil dijadwalkan!", reminder });
+  // Simpan pengingat ke file JSON
+  saveRemindersToFile(reminders);
+
+  res.json({ message: "Pengingat pembayaran berhasil ditambahkan!", reminder });
 });
 
 // Endpoint untuk mendapatkan daftar pengingat dengan pagination
@@ -242,29 +392,40 @@ app.get("/get-reminders", authenticateToken, (req, res) => {
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
 
-  const paginatedReminders = Array.from(reminders.values()).slice(
+  // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
+  if (reminders.size === 0 && fs.existsSync(remindersFilePath)) {
+    loadRemindersFromFile(); // Muat data dari file JSON ke Map
+  }
+
+  const reminderList = Array.from(reminders.values());
+  const paginatedReminders = reminderList.slice(
     (pageNumber - 1) * limitNumber,
     pageNumber * limitNumber
   );
 
   res.json({
     page: pageNumber,
-    totalPages: Math.ceil(reminders.size / limitNumber),
+    totalPagesReminders: Math.ceil(reminderList.length / limitNumber),
     reminders: paginatedReminders,
   });
 });
 
 // Endpoint untuk memperbarui pengingat berdasarkan ID
 app.put("/update-reminder/:id", authenticateToken, (req, res) => {
+  const { id } = req.params; // Ambil ID dari parameter URL
+  const reminderId = parseInt(id, 10); // Pastikan ID berupa integer
   const { error, value } = reminderSchema.validate(req.body);
+
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }
 
   const { phoneNumber, paymentDate, reminderTime, message } = value;
-  console.log(
-    `Received: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`
-  );
+
+  // Cek apakah pengingat dengan ID tersebut ada
+  if (!reminders.has(reminderId)) {
+    return res.status(404).json({ message: "Pengingat tidak ditemukan!" });
+  }
 
   // Ensure the date and time are correctly formatted
   const date = new Date(paymentDate);
@@ -275,22 +436,23 @@ app.put("/update-reminder/:id", authenticateToken, (req, res) => {
   ];
   const [hours, minutes] = reminderTime.split(":");
   const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
-  console.log(`Parsed Date: ${reminderDateTime}`);
 
   // Ensure the date is correctly parsed
   if (isNaN(reminderDateTime.getTime())) {
     return res.status(400).json({ message: "Invalid date or time format" });
   }
 
-  const id = parseInt(req.params.id);
+  // Update data pengingat
+  const updatedReminder = {
+    id: reminderId,
+    phoneNumber,
+    reminderDateTime,
+    message,
+  };
+  reminders.set(reminderId, updatedReminder);
 
-  if (!reminders.has(id)) {
-    return res.status(404).json({ message: "Pengingat tidak ditemukan!" });
-  }
-
-  // Perbarui pengingat
-  const updatedReminder = { id, phoneNumber, reminderDateTime, message };
-  reminders.set(id, updatedReminder);
+  // Simpan pengingat ke file JSON
+  saveRemindersToFile(reminders);
 
   res.json({
     message: "Pengingat berhasil diperbarui!",
@@ -300,20 +462,32 @@ app.put("/update-reminder/:id", authenticateToken, (req, res) => {
 
 // Endpoint untuk menghapus pengingat berdasarkan ID
 app.delete("/delete-reminder/:id", authenticateToken, (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10); // Pastikan ID berupa integer
 
-  if (!reminders.delete(id)) {
+  // Cek apakah pengingat dengan ID tersebut ada
+  if (!reminders.has(id)) {
     return res.status(404).json({ message: "Pengingat tidak ditemukan!" });
   }
+
+  // Hapus pengingat dari Map
+  reminders.delete(id);
+
+  // Simpan perubahan ke file JSON
+  saveRemindersToFile(reminders);
 
   res.json({ message: "Pengingat berhasil dihapus!" });
 });
 
 // Endpoint untuk mendapatkan daftar pengingat terkirim dengan pagination
-app.get("/get-sent-reminders",authenticateToken, (req, res) => {
+app.get("/get-sent-reminders", authenticateToken, (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
+
+  // Pastikan data pengingat terkirim dimuat dari file JSON jika belum dimuat
+  if (sentReminders.size === 0 && fs.existsSync(sentRemindersFilePath)) {
+    loadSentRemindersFromFile(); // Muat data dari file JSON ke Map
+  }
 
   const sentReminderList = Array.from(sentReminders.values());
   const paginatedSentReminders = sentReminderList.slice(
@@ -329,82 +503,40 @@ app.get("/get-sent-reminders",authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk menjadwalkan ulang pengingat terkirim
-app.post("/reschedule-reminder", authenticateToken, (req, res) => {
-  const { error, value } = reminderSchema.validate(req.body);
-  if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+app.post("/reschedule-reminder/:id", authenticateToken, (req, res) => {
+  const id = parseInt(req.params.id, 10); // Pastikan ID berupa integer
+
+  // Cek apakah pengingat terkirim dengan ID tersebut ada
+  if (!sentReminders.has(id)) {
+    return res
+      .status(404)
+      .json({ message: "Pengingat terkirim tidak ditemukan!" });
   }
 
-  const { phoneNumber, paymentDate, reminderTime, message } = value;
-  console.log(
-    `Received for reschedule: ${phoneNumber}, ${paymentDate}, ${reminderTime}, ${message}`
-  );
+  const sentReminder = sentReminders.get(id);
 
-  // Ensure the date and time are correctly formatted
-  const date = new Date(paymentDate);
-  const [year, month, day] = [
-    date.getFullYear(),
-    date.getMonth() + 1,
-    date.getDate(),
-  ];
-  const [hours, minutes] = reminderTime.split(":");
-  const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
-  console.log(`Parsed Date for reschedule: ${reminderDateTime}`);
+  // Tambahkan pengingat ke Map pengingat aktif
+  reminders.set(sentReminder.id, sentReminder);
 
-  // Ensure the date is correctly parsed
-  if (isNaN(reminderDateTime.getTime())) {
-    return res.status(400).json({ message: "Invalid date or time format" });
-  }
+  // Hapus pengingat terkirim dari Map
+  sentReminders.delete(id);
 
-  // ID unik menggunakan timestamp
-  const reminder = {
-    id: Date.now(),
-    phoneNumber,
-    reminderDateTime,
-    message,
-  };
-
-  // Tambahkan pengingat ke Map
-  reminders.set(reminder.id, reminder);
+  // Simpan perubahan ke file JSON
+  saveRemindersToFile(reminders);
+  saveSentRemindersToFile(sentReminders);
 
   res.json({
-    message: "Pengingat pembayaran berhasil dijadwalkan ulang!",
-    reminder,
+    message: "Pengingat berhasil dijadwalkan ulang!",
+    reminder: sentReminder,
   });
 });
 
-// Fungsi untuk mengirim pesan ke WhatsApp
-const sendWhatsAppMessage = async (phoneNumber, message) => {
-  try {
-    const chatId = `${phoneNumber}@c.us`;
-    await whatsappClient.sendMessage(chatId, message);
-    console.log(`Pesan berhasil dikirim ke ${phoneNumber}`);
-  } catch (error) {
-    console.error("Gagal mengirim pesan:", error);
-    throw error;
-  }
-};
-
-// Fungsi untuk menjalankan cron job
-cron.schedule("* * * * *", async () => {
-  const now = new Date();
-
-  for (const reminder of reminders.values()) {
-    if (now >= reminder.reminderDateTime) {
-      try {
-        await sendWhatsAppMessage(reminder.phoneNumber, reminder.message);
-        console.log(
-          `Pengingat untuk ${reminder.phoneNumber} berhasil dikirim.`
-        );
-
-        // Pindahkan pengingat ke sentReminders
-        sentReminders.set(reminder.id, reminder);
-        reminders.delete(reminder.id); // Hapus dari daftar pengingat aktif
-      } catch (error) {
-        console.error(`Gagal mengirim pengingat ke ${reminder.phoneNumber}`);
-      }
-    }
-  }
+// Endpoint untuk mendapatkan status WhatsApp
+app.get("/whatsapp-status", authenticateToken, (req, res) => {
+  res.json({
+    authenticated: isAuthenticated,
+    qrCode: qrCodeData,
+  });
 });
 
 // Handle 404 untuk endpoint yang tidak ditemukan

@@ -120,20 +120,26 @@
                         </div>
                         <nav aria-label="Page navigation example" class="mt-3">
                             <ul class="pagination justify-content-center">
+                                <!-- Tombol Previous -->
                                 <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
                                     <button class="page-link" @click="prevPage">Previous</button>
                                 </li>
+
+                                <!-- Tombol Halaman -->
                                 <template x-for="page in visiblePages" :key="page">
                                     <li class="page-item" :class="{ 'active': page === currentPage }">
-                                        <button class="page-link" @click.prevent="currentPage = page"
-                                            x-text="page"></button>
+                                        <button class="page-link" @click.prevent="goToPage(page)" x-text="page">
+                                        </button>
                                     </li>
                                 </template>
+
+                                <!-- Tombol Next -->
                                 <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
                                     <button class="page-link" @click="nextPage">Next</button>
                                 </li>
                             </ul>
                         </nav>
+               
                     </div>
                 </div>
             </div>
@@ -173,7 +179,8 @@
                             <template x-for="contact in contacts" :key="contact.id">
                                 <div class="card mb-3">
                                     <div class="card-body">
-                                        <h6 class="card-subtitle mb-2 text-muted"><i class="fa-solid fa-circle-user"></i> <span x-text="contact.name"></span>
+                                        <h6 class="card-subtitle mb-2 text-muted"><i
+                                                class="fa-solid fa-circle-user"></i> <span x-text="contact.name"></span>
                                         </h6>
                                         <p class="card-text"><strong><i class="fa-brands fa-whatsapp"></i> WhatsApp
                                                 Number:</strong> <span x-text="contact.phoneNumber"></span></p>
@@ -185,21 +192,27 @@
                         </div>
                         <nav aria-label="Page navigation example" class="mt-3">
                             <ul class="pagination justify-content-center">
+                                <!-- Tombol Previous -->
                                 <li class="page-item" :class="{ 'disabled': currentPageContacts === 1 }">
                                     <button class="page-link" @click="prevPageContacts">Previous</button>
                                 </li>
+
+                                <!-- Tombol Halaman -->
                                 <template x-for="page in visiblePagesContacts" :key="page">
                                     <li class="page-item" :class="{ 'active': page === currentPageContacts }">
-                                        <button class="page-link" @click.prevent="currentPageContacts = page"
-                                            x-text="page"></button>
+                                        <button class="page-link" @click.prevent="goToPageContacts(page)" x-text="page">
+                                        </button>
                                     </li>
                                 </template>
+
+                                <!-- Tombol Next -->
                                 <li class="page-item"
                                     :class="{ 'disabled': currentPageContacts === totalPagesContacts }">
                                     <button class="page-link" @click="nextPageContacts">Next</button>
                                 </li>
                             </ul>
                         </nav>
+
                     </div>
                 </div>
             </div>
@@ -232,21 +245,28 @@
                         </div>
                         <nav aria-label="Page navigation example" class="mt-3">
                             <ul class="pagination justify-content-center">
+                                <!-- Tombol Previous -->
                                 <li class="page-item" :class="{ 'disabled': currentPageSentReminders === 1 }">
                                     <button class="page-link" @click="prevPageSentReminders">Previous</button>
                                 </li>
+
+                                <!-- Tombol Halaman -->
                                 <template x-for="page in visiblePagesSentReminders" :key="page">
                                     <li class="page-item" :class="{ 'active': page === currentPageSentReminders }">
-                                        <button class="page-link" @click.prevent="currentPageSentReminders = page"
-                                            x-text="page"></button>
+                                        <button class="page-link" @click.prevent="goToPageSentReminders(page)"
+                                            x-text="page">
+                                        </button>
                                     </li>
                                 </template>
+
+                                <!-- Tombol Next -->
                                 <li class="page-item"
                                     :class="{ 'disabled': currentPageSentReminders === totalPagesSentReminders }">
                                     <button class="page-link" @click="nextPageSentReminders">Next</button>
                                 </li>
                             </ul>
                         </nav>
+
                     </div>
                 </div>
             </div>

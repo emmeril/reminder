@@ -143,7 +143,7 @@ function reminderApp() {
       // Auto-refresh setiap 5 menit
       setInterval(() => {
         this.fetchReminders();
-      }, 60000); // 5 menit dalam milidetik
+      }, 300000); // 5 menit dalam milidetik
     },
 
     // Di dalam function app() - script.js
@@ -210,44 +210,78 @@ function reminderApp() {
 
     // Ambil data reminders
     async fetchReminders() {
-      const result = await fetchData(
-        `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
-        {
-          headers: { Authorization: `Bearer ${this.token}` },
+      try {
+        const response = await fetch(
+          `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
+          {
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Gagal mengambil data pengingat");
         }
-      );
-      this.reminders = result.reminders;
-      this.totalPages = result.totalPages;
+
+        const result = await response.json();
+
+        this.reminders = result.reminders;
+        this.totalPages = result.totalPagesReminders;
+      } catch (error) {
+        console.error("Error saat mengambil pengingat:", error);
+      }
     },
 
     // Submit form reminder
     async submitForm() {
-      const url = this.form.reminderId
-        ? `http://202.70.133.37:3000/update-reminder/${this.form.reminderId}`
-        : "http://202.70.133.37:3000/schedule-reminder";
+      try {
+        // Tentukan URL dan metode HTTP berdasarkan apakah reminderId tersedia
+        const url = this.form.reminderId
+          ? `http://202.70.133.37:3000/update-reminder/${this.form.reminderId}`
+          : "http://202.70.133.37:3000/add-reminder";
 
-      const method = this.form.reminderId ? "PUT" : "POST";
+        const method = this.form.reminderId ? "PUT" : "POST";
 
-      const data = {
-        phoneNumber: this.form.phoneNumber,
-        paymentDate: this.form.paymentDate,
-        reminderTime: this.form.reminderTime,
-        message: this.form.message,
-      };
+        // Data yang akan dikirim
+        const data = {
+          phoneNumber: this.form.phoneNumber,
+          paymentDate: this.form.paymentDate,
+          reminderTime: this.form.reminderTime,
+          message: this.form.message,
+        };
 
-      const result = await fetchData(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.token}`,
-        },
-        body: JSON.stringify(data),
-      });
+        // Kirim permintaan ke server
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.token}`,
+          },
+          body: JSON.stringify(data),
+        });
 
-      // alert(result.message);
-      this.showToast("Reminder berhasil disimpan!");
-      this.fetchReminders();
-      this.resetForm();
+        // Periksa jika respons tidak OK
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Gagal menyimpan pengingat");
+        }
+
+        // Ambil respons JSON
+        const result = await response.json();
+
+        // Tampilkan pesan sukses
+        this.showToast(result.message || "Pengingat berhasil disimpan!");
+
+        // Perbarui daftar pengingat
+        this.fetchReminders();
+
+        // Reset form setelah sukses
+        this.resetForm();
+      } catch (error) {
+        console.error("Error saat menyimpan pengingat:", error);
+        this.showToast(error.message || "Terjadi kesalahan, coba lagi.");
+      }
     },
 
     // Reset form reminder
@@ -299,14 +333,37 @@ function reminderApp() {
 
     // Fetch data kontak dengan pagination yang benar
     async fetchContacts() {
-      const result = await fetchData(
-        `http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`,
-        {
-          headers: { Authorization: `Bearer ${this.token}` },
+      try {
+        // Kirim permintaan untuk mendapatkan data kontak
+        const response = await fetch(
+          `http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`,
+          {
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          }
+        );
+
+        // Periksa jika respons tidak berhasil
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to fetch contacts");
         }
-      );
-      this.contacts = result.contacts;
-      this.totalPagesContacts = result.totalPagesContacts;
+
+        // Parsing data JSON dari respons
+        const result = await response.json();
+
+        // Perbarui data kontak di state/frontend
+        this.contacts = result.contacts;
+        this.totalPagesContacts = result.totalPagesContacts;
+      } catch (error) {
+        // Tangani error dan log ke konsol
+        console.error("Failed to fetch contacts:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan saat mengambil daftar kontak",
+          "danger"
+        );
+      }
     },
 
     // Format nomor telepon
@@ -333,24 +390,47 @@ function reminderApp() {
 
     // Submit form kontak
     async submitContactForm() {
-      // Format nomor telepon sebelum dikirim
-      this.contactForm.phoneNumber = this.formatPhoneNumber(
-        this.contactForm.phoneNumber
-      );
+      try {
+        // Format nomor telepon sebelum dikirim
+        this.contactForm.phoneNumber = this.formatPhoneNumber(
+          this.contactForm.phoneNumber
+        );
 
-      const result = await fetchData("http://202.70.133.37:3000/add-contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.token}`,
-        },
-        body: JSON.stringify(this.contactForm),
-      });
+        // Kirim permintaan untuk menambahkan kontak
+        const response = await fetch("http://202.70.133.37:3000/add-contact", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.token}`,
+          },
+          body: JSON.stringify(this.contactForm),
+        });
 
-      // alert(result.message);
-      this.showToast("Kontak berhasil ditambahkan!");
-      this.fetchContacts();
-      this.contactForm = { name: "", phoneNumber: "" };
+        // Periksa jika respons tidak berhasil
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Gagal menambahkan kontak");
+        }
+
+        // Ambil data dari respons
+        const result = await response.json();
+
+        // Tampilkan pesan sukses
+        this.showToast(result.message || "Kontak berhasil ditambahkan!");
+
+        // Perbarui daftar kontak
+        this.fetchContacts();
+
+        // Reset form setelah berhasil
+        this.contactForm = { name: "", phoneNumber: "" };
+      } catch (error) {
+        // Tangani error dan tampilkan pesan kepada pengguna
+        console.error("Failed to submit contact form:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan saat menambahkan kontak",
+          "danger"
+        );
+      }
     },
 
     // Hapus kontak
@@ -404,6 +484,7 @@ function reminderApp() {
 
     async fetchSentReminders() {
       try {
+        // Kirim permintaan ke server untuk mendapatkan pengingat terkirim
         const response = await fetch(
           `http://202.70.133.37:3000/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`,
           {
@@ -412,48 +493,71 @@ function reminderApp() {
             },
           }
         );
+
+        // Periksa status HTTP dari respons
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Failed to fetch sent reminders"
+          );
+        }
+
+        // Parsing respons JSON
         const data = await response.json();
+
+        // Perbarui data di state/frontend
         this.sentReminders = data.sentReminders;
         this.totalPagesSentReminders = data.totalPagesSentReminders;
       } catch (error) {
+        // Tangani error dan tampilkan di konsol
         console.error("Failed to fetch sent reminders:", error);
+        this.showToast(
+          error.message ||
+            "Terjadi kesalahan saat mengambil pengingat terkirim",
+          "danger"
+        );
       }
     },
 
+    //
     async rescheduleReminder(reminder) {
       try {
+        // Pastikan ID ada di objek reminder
+        if (!reminder.id) {
+          throw new Error("Reminder ID is missing");
+        }
+
         const response = await fetch(
-          "http://202.70.133.37:3000/reschedule-reminder",
+          `http://202.70.133.37:3000/reschedule-reminder/${reminder.id}`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
-            body: JSON.stringify({
-              phoneNumber: reminder.phoneNumber,
-              paymentDate: new Date(reminder.reminderDateTime)
-                .toISOString()
-                .split("T")[0],
-              reminderTime: new Date(reminder.reminderDateTime)
-                .toTimeString()
-                .split(" ")[0]
-                .slice(0, 5),
-              message: reminder.message,
-            }),
           }
         );
+
         const data = await response.json();
+
         if (response.ok) {
+          // Perbarui daftar pengingat dan pengingat terkirim
           this.fetchReminders();
           this.fetchSentReminders();
-          this.showToast(data.message);
+          this.showToast(data.message || "Reminder successfully rescheduled!");
         } else {
-          this.showToast(data.message, "danger");
+          // Tampilkan pesan error dari server
+          this.showToast(
+            data.message || "Failed to reschedule reminder",
+            "danger"
+          );
         }
       } catch (error) {
         console.error("Failed to reschedule reminder:", error);
-        this.showToast("Failed to reschedule reminder", "danger");
+        this.showToast(
+          error.message || "Failed to reschedule reminder",
+          "danger"
+        );
       }
     },
 
@@ -474,18 +578,33 @@ function reminderApp() {
       }
     },
 
+    goToPage(page) {
+      if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+        this.currentPage = page;
+        this.fetchReminders();
+      }
+    },
+
     get visiblePages() {
-      const total = this.totalPages;
-      const current = this.currentPage;
-      const range = 5;
+      const total = this.totalPages; // Total halaman
+      const current = this.currentPage; // Halaman saat ini
+      const range = 5; // Jumlah maksimal halaman yang ditampilkan dalam paginasi
 
-      const start = Math.max(1, current - Math.floor(range / 2));
-      const end = Math.min(total, start + range - 1);
+      // Hitung start dan end untuk rentang halaman
+      let start = Math.max(1, current - Math.floor(range / 2));
+      let end = Math.min(total, start + range - 1);
 
+      // Jika ada lebih sedikit halaman dari range yang diminta, sesuaikan rentangnya
+      if (end - start + 1 < range) {
+        start = Math.max(1, end - range + 1);
+      }
+
+      // Buat array untuk rentang halaman yang terlihat
       const pages = [];
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
+
       return pages;
     },
 
@@ -504,18 +623,37 @@ function reminderApp() {
       }
     },
 
+    goToPageContacts(page) {
+      if (
+        page >= 1 &&
+        page <= this.totalPagesContacts &&
+        page !== this.currentPageContacts
+      ) {
+        this.currentPageContacts = page;
+        this.fetchContacts();
+      }
+    },
+
     get visiblePagesContacts() {
-      const total = this.totalPagesContacts;
-      const current = this.currentPageContacts;
-      const range = 5; // Jumlah halaman yang terlihat
+      const total = this.totalPagesContacts; // Total halaman kontak
+      const current = this.currentPageContacts; // Halaman saat ini
+      const range = 5; // Jumlah maksimal halaman yang ditampilkan
 
-      const start = Math.max(1, current - Math.floor(range / 2));
-      const end = Math.min(total, start + range - 1);
+      // Hitung rentang halaman (start dan end)
+      let start = Math.max(1, current - Math.floor(range / 2));
+      let end = Math.min(total, start + range - 1);
 
+      // Sesuaikan jika range kurang dari nilai yang diinginkan
+      if (end - start + 1 < range) {
+        start = Math.max(1, end - range + 1);
+      }
+
+      // Buat array halaman yang terlihat
       const pages = [];
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
+
       return pages;
     },
 
@@ -534,18 +672,37 @@ function reminderApp() {
       }
     },
 
+    goToPageSentReminders(page) {
+      if (
+        page >= 1 &&
+        page <= this.totalPagesSentReminders &&
+        page !== this.currentPageSentReminders
+      ) {
+        this.currentPageSentReminders = page;
+        this.fetchSentReminders();
+      }
+    },
+
     get visiblePagesSentReminders() {
-      const total = this.totalPagesSentReminders;
-      const current = this.currentPageSentReminders;
-      const range = 5;
+      const total = this.totalPagesSentReminders; // Total jumlah halaman
+      const current = this.currentPageSentReminders; // Halaman saat ini
+      const range = 5; // Jumlah halaman yang terlihat dalam paginasi
 
-      const start = Math.max(1, current - Math.floor(range / 2));
-      const end = Math.min(total, start + range - 1);
+      // Hitung awal (start) dan akhir (end) dari rentang halaman
+      let start = Math.max(1, current - Math.floor(range / 2));
+      let end = Math.min(total, start + range - 1);
 
+      // Jika rentang halaman kurang dari range, sesuaikan awal (start)
+      if (end - start + 1 < range) {
+        start = Math.max(1, end - range + 1);
+      }
+
+      // Buat daftar halaman untuk ditampilkan
       const pages = [];
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
+
       return pages;
     },
 
