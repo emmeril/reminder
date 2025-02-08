@@ -607,7 +607,6 @@ app.post("/reschedule-reminder/:id", authenticateToken, (req, res) => {
     reminder: sentReminder,
   });
 });
-
 // Endpoint untuk mendapatkan status WhatsApp
 app.get("/whatsapp-status", authenticateToken, (req, res) => {
   try {
