@@ -162,6 +162,7 @@ function reminderApp() {
     totalPages: 1,
 
     // Data kontak
+    allContacts: [],
     contacts: [],
     currentPageContacts: 1,
     limitContacts: 5,
@@ -230,6 +231,7 @@ function reminderApp() {
           this.fetchContacts(),
           this.fetchReminders(),
           this.fetchSentReminders(),
+          this.fetchAllContacts(),
         ])
           .then(() => {
             console.log("Initialization complete. Data fetched successfully.");
@@ -643,6 +645,51 @@ function reminderApp() {
       } finally {
         // Reset loading state
         this.isLoadingContacts = false;
+      }
+    },
+
+    async fetchAllContacts() {
+      try {
+        // Set loading state
+        this.isLoadingAllContacts = true;
+
+        // Send API request for all contacts (no pagination)
+        const response = await fetch(`${API_BASE_URL}/get-all-contacts`, {
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+        });
+
+        // Check if the response is successful
+        if (!response.ok) {
+          let errorMessage = "Failed to fetch all contacts";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignore JSON parsing errors
+          }
+          throw new Error(errorMessage);
+        }
+
+        // Parse response JSON
+        const result = await response.json();
+
+        // Update contacts data with all contacts
+        this.allContacts = Array.isArray(result.allContacts)
+          ? result.allContacts
+          : [];
+
+        console.log("All contacts fetched successfully:", this.allContacts);
+      } catch (error) {
+        console.error("Failed to fetch all contacts:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan saat mengambil semua kontak",
+          "danger"
+        );
+      } finally {
+        // Reset loading state
+        this.isLoadingAllContacts = false;
       }
     },
 

@@ -352,6 +352,20 @@ app.post("/add-contact", authenticateToken, (req, res) => {
   res.json({ message: "Kontak berhasil ditambahkan!", contact });
 });
 
+// Endpoint untuk mendapatkan daftar all kontak
+app.get("/get-all-contacts", authenticateToken, (req, res) => {
+  // Pastikan data kontak dimuat dari file JSON jika belum dimuat
+  if (contacts.size === 0 && fs.existsSync(contactsFilePath)) {
+    loadContactsFromFile(); // Muat data dari file JSON ke Map
+  }
+
+  const contactList = Array.from(contacts.values());
+
+  res.json({
+    allContacts: contactList,
+  });
+});
+
 // Endpoint untuk mendapatkan daftar kontak dengan pagination
 app.get("/get-contacts", authenticateToken, (req, res) => {
   const { page = 1, limit = 5 } = req.query;

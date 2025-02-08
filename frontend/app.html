@@ -42,7 +42,7 @@
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-right"
                                             :class="{ 'show': isContactDropdownOpen }">
-                                            <template x-for="contact in contacts" :key="contact.id">
+                                            <template x-for="contact in allContacts" :key="contact.id">
                                                 <button class="dropdown-item" type="button"
                                                     @click="selectContact(contact)">
                                                     <span x-text="contact.name"></span> - <span
