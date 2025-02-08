@@ -177,10 +177,23 @@ const whatsappClient = new Client({
 
 // Menampilkan QR code untuk login
 whatsappClient.on("qr", (qr) => {
-  console.log("QR code untuk login:");
-  qrcode.generate(qr, { small: true });
+  const timestamp = new Date().toISOString();
+
+  // Update global state
   qrCodeData = qr;
   isAuthenticated = false;
+
+  // Log QR code with timestamp
+  console.log(`[${timestamp}] QR code untuk login dihasilkan.`);
+
+  // Generate QR code in the console
+  try {
+    qrcode.generate(qr, { small: true });
+  } catch (error) {
+    console.error(
+      `[${timestamp}] Gagal menghasilkan QR code: ${error.message}`
+    );
+  }
 });
 
 // Saat klien siap digunakan
@@ -188,6 +201,16 @@ whatsappClient.on("ready", () => {
   console.log("Bot WhatsApp siap digunakan dan terhubung ke akun WhatsApp.");
   isAuthenticated = true;
   qrCodeData = null;
+});
+
+whatsappClient.on("disconnected", (reason) => {
+  console.error(`Bot WhatsApp terputus: ${reason}`);
+  isAuthenticated = false;
+});
+
+whatsappClient.on("auth_failure", (msg) => {
+  console.error(`Gagal autentikasi: ${msg}`);
+  isAuthenticated = false;
 });
 
 // Fungsi untuk mengirim pesan ke WhatsApp
@@ -590,10 +613,21 @@ app.post("/reschedule-reminder/:id", authenticateToken, (req, res) => {
 
 // Endpoint untuk mendapatkan status WhatsApp
 app.get("/whatsapp-status", authenticateToken, (req, res) => {
-  res.json({
-    authenticated: isAuthenticated,
-    qrCode: qrCodeData,
-  });
+  try {
+    // Validate the state
+    const status = {
+      authenticated: Boolean(isAuthenticated),
+      qrCode: isAuthenticated ? null : qrCodeData || null, // Provide QR code only if not authenticated
+    };
+
+    // Respond with the WhatsApp status
+    res.status(200).json(status);
+  } catch (error) {
+    console.error("Error in /whatsapp-status route:", error);
+    res.status(500).json({
+      message: "Failed to retrieve WhatsApp status. Please try again later.",
+    });
+  }
 });
 
 // Handle 404 untuk endpoint yang tidak ditemukan
