@@ -102,7 +102,7 @@
                         <h5 class="card-title"><i class="fa-solid fa-rectangle-list"></i> Scheduled Reminders</h5>
                         <!-- Input Pencarian -->
                         <div class="my-3">
-                            <input type="text" class="form-control" placeholder="Cari Reminders..." x-model="searchQuery"
+                            <input type="text" class="form-control" placeholder="Cari Reminders..." x-model="searchQueryReminders"
                                 @input="searchReminders" />
                         </div>
                         <div id="reminderList">
@@ -185,7 +185,7 @@
                         <h5 class="card-title"><i class="fa-solid fa-address-book"></i> Daftar Kontak</h5>
                         <!-- Input Pencarian -->
                         <div class="my-3">
-                            <input type="text" class="form-control" placeholder="Cari kontak..." x-model="searchQuery"
+                            <input type="text" class="form-control" placeholder="Cari kontak..." x-model="searchQueryContacts"
                                 @input="searchContacts" />
                         </div>
                         <div id="contactList" class="mb-3">

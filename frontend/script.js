@@ -183,7 +183,8 @@ function reminderApp() {
     limitSentReminders: 1,
     totalPagesSentReminders: 1,
 
-    searchQuery: "",
+    searchQueryReminders: "",
+    searchQueryContacts: "",
 
     // Template pesan
     messageTemplates: [
@@ -647,7 +648,7 @@ function reminderApp() {
     },
 
     searchReminders() {
-      const query = this.searchQuery.trim().toLowerCase();
+      const query = this.searchQueryReminders.trim().toLowerCase();
 
       if (query === "") {
         // Jika pencarian kosong, tampilkan data dari halaman aktif
@@ -656,9 +657,9 @@ function reminderApp() {
         // Filter kontak berdasarkan nama atau nomor telepon
         // Filter kontak berdasarkan pesan atau nomor telepon
         this.reminders = this.allReminders.filter(
-          (reminders) =>
-            reminders.message.toLowerCase().includes(query) ||
-            reminders.phoneNumber.toLowerCase().includes(query)
+          (reminder) =>
+            reminder.message.toLowerCase().includes(query) ||
+            reminder.phoneNumber.toLowerCase().includes(query)
         );
       }
 
@@ -1038,7 +1039,7 @@ function reminderApp() {
     },
 
     searchContacts() {
-      const query = this.searchQuery.trim().toLowerCase();
+      const query = this.searchQueryContacts.trim().toLowerCase();
 
       if (query === "") {
         // Jika pencarian kosong, tampilkan data dari halaman aktif
