@@ -11,7 +11,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const slowDown = require("express-slow-down");
-const fs = require("fs");
+const fs = require("fs").promises;
 const path = require("path");
 const app = express();
 
@@ -55,51 +55,155 @@ app.use(speedLimiter);
 const contactsFilePath = path.join(__dirname, "database", "contacts.json");
 
 // Fungsi untuk menyimpan data ke file JSON
-const saveContactsToFile = (contacts) => {
-  fs.writeFileSync(
-    contactsFilePath,
-    JSON.stringify([...contacts.values()], null, 2)
-  );
+const saveContactsToFile = async (contacts) => {
+  try {
+    // Pastikan direktori tempat file berada sudah ada
+    const dirPath = path.dirname(contactsFilePath);
+    await fs.mkdir(dirPath, { recursive: true }); // Membuat direktori jika belum ada
+
+    // Simpan data ke file JSON
+    await fs.writeFile(
+      contactsFilePath,
+      JSON.stringify([...contacts.values()], null, 2)
+    );
+
+    console.log(`Kontak berhasil disimpan di ${contactsFilePath}`);
+  } catch (error) {
+    console.error(`Gagal menyimpan kontak ke file: ${error.message}`);
+  }
 };
 
 // Fungsi untuk memuat data dari file JSON (jika file ada)
-const loadContactsFromFile = () => {
-  if (fs.existsSync(contactsFilePath)) {
-    const data = fs.readFileSync(contactsFilePath, "utf-8");
+const loadContactsFromFile = async () => {
+  try {
+    // Periksa apakah file ada
+    const fileExists = await fs
+      .access(contactsFilePath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!fileExists) {
+      console.log(`File kontak tidak ditemukan di path: ${contactsFilePath}`);
+      return; // Jika file tidak ada, keluar dari fungsi
+    }
+
+    // Baca file secara asinkron
+    const data = await fs.readFile(contactsFilePath, "utf-8");
+
+    if (!data.trim()) {
+      console.log("File kontak kosong, tidak ada data untuk dimuat.");
+      return; // Jika file kosong, keluar dari fungsi
+    }
+
+    // Parse data JSON
     const parsedContacts = JSON.parse(data);
+
+    // Validasi dan tambahkan ke Map contacts
     parsedContacts.forEach((contact) => {
-      contacts.set(contact.id, contact);
+      if (contact.id && contact.name && contact.phoneNumber) {
+        contacts.set(contact.id, contact);
+      } else {
+        console.warn(
+          `Kontak tidak valid ditemukan: ${JSON.stringify(contact)}`
+        );
+      }
     });
+
+    console.log("Kontak berhasil dimuat dari file.");
+  } catch (error) {
+    console.error(`Gagal memuat kontak dari file: ${error.message}`);
   }
 };
 
 // Muat data kontak saat aplikasi dijalankan
-loadContactsFromFile();
+loadContactsFromFile()
+  .then(() => {
+    console.log("Kontak berhasil dimuat ke dalam Map.");
+  })
+  .catch((error) => {
+    console.error("Gagal memuat kontak:", error.message);
+  });
 
 // simpan file pengingat di database/reminders.json
 const remindersFilePath = path.join(__dirname, "database", "reminders.json");
 
 // Fungsi untuk menyimpan data ke file JSON
-const saveRemindersToFile = (reminders) => {
-  fs.writeFileSync(
-    remindersFilePath,
-    JSON.stringify([...reminders.values()], null, 2)
-  );
+const saveRemindersToFile = async (reminders) => {
+  try {
+    // Pastikan direktori tempat file berada sudah ada
+    const dirPath = path.dirname(remindersFilePath);
+    await fs.mkdir(dirPath, { recursive: true }); // Membuat direktori jika belum ada
+
+    // Simpan data ke file JSON
+    const remindersArray = [...reminders.values()]; // Konversi Map ke Array
+    await fs.writeFile(
+      remindersFilePath,
+      JSON.stringify(remindersArray, null, 2) // Format JSON dengan indentasi
+    );
+
+    console.log(`Pengingat berhasil disimpan di ${remindersFilePath}`);
+  } catch (error) {
+    console.error(`Gagal menyimpan pengingat ke file: ${error.message}`);
+  }
 };
 
 // Fungsi untuk memuat data dari file JSON (jika file ada)
-const loadRemindersFromFile = () => {
-  if (fs.existsSync(remindersFilePath)) {
-    const data = fs.readFileSync(remindersFilePath, "utf-8");
+const loadRemindersFromFile = async () => {
+  try {
+    // Periksa apakah file ada
+    const fileExists = await fs
+      .access(remindersFilePath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!fileExists) {
+      console.log(
+        `File pengingat tidak ditemukan di path: ${remindersFilePath}`
+      );
+      return; // Jika file tidak ada, keluar dari fungsi
+    }
+
+    // Baca file secara asinkron
+    const data = await fs.readFile(remindersFilePath, "utf-8");
+
+    if (!data.trim()) {
+      console.log("File pengingat kosong, tidak ada data untuk dimuat.");
+      return; // Jika file kosong, keluar dari fungsi
+    }
+
+    // Parse data JSON
     const parsedReminders = JSON.parse(data);
+
+    // Validasi dan tambahkan ke Map reminders
     parsedReminders.forEach((reminder) => {
-      reminders.set(reminder.id, reminder);
+      if (
+        reminder.id &&
+        reminder.phoneNumber &&
+        reminder.reminderDateTime &&
+        reminder.message
+      ) {
+        reminders.set(reminder.id, reminder);
+      } else {
+        console.warn(
+          `Pengingat tidak valid ditemukan: ${JSON.stringify(reminder)}`
+        );
+      }
     });
+
+    console.log("Pengingat berhasil dimuat dari file.");
+  } catch (error) {
+    console.error(`Gagal memuat pengingat dari file: ${error.message}`);
   }
 };
 
 // Muat data pengingat saat aplikasi dijalankan
-loadRemindersFromFile();
+loadRemindersFromFile()
+  .then(() => {
+    console.log("Pengingat selesai dimuat ke dalam Map.");
+  })
+  .catch((error) => {
+    console.error("Gagal memuat pengingat:", error.message);
+  });
 
 // simpan file pengingat terkirim di database/sent_reminders.json
 const sentRemindersFilePath = path.join(
@@ -109,40 +213,112 @@ const sentRemindersFilePath = path.join(
 );
 
 // Fungsi untuk menyimpan data ke file JSON
-const saveSentRemindersToFile = (sentReminders) => {
-  fs.writeFileSync(
-    sentRemindersFilePath,
-    JSON.stringify([...sentReminders.values()], null, 2)
-  );
+const saveSentRemindersToFile = async (sentReminders) => {
+  try {
+    // Pastikan direktori tempat file berada sudah ada
+    const dirPath = path.dirname(sentRemindersFilePath);
+    await fs.mkdir(dirPath, { recursive: true }); // Membuat direktori jika belum ada
+
+    // Konversi Map ke Array
+    const sentRemindersArray = [...sentReminders.values()];
+
+    // Simpan data ke file JSON
+    await fs.writeFile(
+      sentRemindersFilePath,
+      JSON.stringify(sentRemindersArray, null, 2) // Format JSON dengan indentasi
+    );
+
+    console.log(
+      `Pengingat terkirim berhasil disimpan di ${sentRemindersFilePath}`
+    );
+  } catch (error) {
+    console.error(
+      `Gagal menyimpan pengingat terkirim ke file: ${error.message}`
+    );
+  }
 };
 
 // Fungsi untuk memuat data dari file JSON (jika file ada)
-const loadSentRemindersFromFile = () => {
-  if (fs.existsSync(sentRemindersFilePath)) {
-    const data = fs.readFileSync(sentRemindersFilePath, "utf-8");
+const loadSentRemindersFromFile = async () => {
+  try {
+    // Periksa apakah file ada
+    const fileExists = await fs
+      .access(sentRemindersFilePath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!fileExists) {
+      console.log(
+        `File pengingat terkirim tidak ditemukan di path: ${sentRemindersFilePath}`
+      );
+      return; // Jika file tidak ada, keluar dari fungsi
+    }
+
+    // Baca file secara asinkron
+    const data = await fs.readFile(sentRemindersFilePath, "utf-8");
+
+    if (!data.trim()) {
+      console.log(
+        "File pengingat terkirim kosong, tidak ada data untuk dimuat."
+      );
+      return; // Jika file kosong, keluar dari fungsi
+    }
+
+    // Parse data JSON
     const parsedSentReminders = JSON.parse(data);
+
+    // Validasi dan tambahkan ke Map sentReminders
     parsedSentReminders.forEach((sentReminder) => {
-      sentReminders.set(sentReminder.id, sentReminder);
+      if (
+        sentReminder.id &&
+        sentReminder.phoneNumber &&
+        sentReminder.reminderDateTime &&
+        sentReminder.message
+      ) {
+        sentReminders.set(sentReminder.id, sentReminder);
+      } else {
+        console.warn(
+          `Pengingat terkirim tidak valid ditemukan: ${JSON.stringify(
+            sentReminder
+          )}`
+        );
+      }
     });
+
+    console.log("Pengingat terkirim berhasil dimuat dari file.");
+  } catch (error) {
+    console.error(
+      `Gagal memuat pengingat terkirim dari file: ${error.message}`
+    );
   }
 };
 
 // Muat data pengingat terkirim saat aplikasi dijalankan
-loadSentRemindersFromFile();
+loadSentRemindersFromFile()
+  .then(() => {
+    console.log("Pengingat terkirim selesai dimuat ke dalam Map.");
+  })
+  .catch((error) => {
+    console.error("Gagal memuat pengingat terkirim:", error.message);
+  });
 
 // Middleware
 const authenticateToken = (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Token tidak ditemukan atau format salah" });
+      return res
+        .status(401)
+        .json({ message: "Token tidak ditemukan atau format salah" });
     }
 
     const token = authHeader.split(" ")[1];
     jwt.verify(token, JWT_SECRET, (err, user) => {
       if (err) {
-        const errorMessage = err.name === "TokenExpiredError" ? 
-          "Token telah kedaluwarsa" : "Token tidak valid";
+        const errorMessage =
+          err.name === "TokenExpiredError"
+            ? "Token telah kedaluwarsa"
+            : "Token tidak valid";
         return res.status(403).json({ message: errorMessage });
       }
       req.user = user;
@@ -153,7 +329,6 @@ const authenticateToken = (req, res, next) => {
     return res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
 };
-
 
 // Schemas untuk user login dan register
 const userSchema = Joi.object({
@@ -302,8 +477,8 @@ cron.schedule("* * * * *", async () => {
 
   // Save reminders and sent reminders to file
   try {
-    saveRemindersToFile(reminders);
-    saveSentRemindersToFile(sentReminders);
+    await saveRemindersToFile(reminders);
+    await saveSentRemindersToFile(sentReminders);
     console.log("Data pengingat berhasil diperbarui.");
   } catch (error) {
     console.error("Gagal menyimpan data pengingat:", error.message);
@@ -353,7 +528,7 @@ app.post("/login", async (req, res) => {
 });
 
 // Endpoint untuk menambahkan kontak
-app.post("/add-contact", authenticateToken, (req, res) => {
+app.post("/add-contact", authenticateToken, async (req, res) => {
   const { error, value } = contactSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
@@ -367,16 +542,16 @@ app.post("/add-contact", authenticateToken, (req, res) => {
   contacts.set(id, contact);
 
   // Simpan kontak ke file JSON
-  saveContactsToFile(contacts);
+  await saveContactsToFile(contacts);
 
   res.json({ message: "Kontak berhasil ditambahkan!", contact });
 });
 
 // Endpoint untuk mendapatkan daftar all kontak
-app.get("/get-all-contacts", authenticateToken, (req, res) => {
+app.get("/get-all-contacts", authenticateToken, async (req, res) => {
   // Pastikan data kontak dimuat dari file JSON jika belum dimuat
   if (contacts.size === 0 && fs.existsSync(contactsFilePath)) {
-    loadContactsFromFile(); // Muat data dari file JSON ke Map
+    await loadContactsFromFile(); // Muat data dari file JSON ke Map
   }
 
   const contactList = Array.from(contacts.values());
@@ -387,14 +562,14 @@ app.get("/get-all-contacts", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar kontak dengan pagination
-app.get("/get-contacts", authenticateToken, (req, res) => {
+app.get("/get-contacts", authenticateToken, async (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
 
   // Pastikan data kontak dimuat dari file JSON jika belum dimuat
   if (contacts.size === 0 && fs.existsSync(contactsFilePath)) {
-    loadContactsFromFile(); // Muat data dari file JSON ke Map
+    await loadContactsFromFile(); // Muat data dari file JSON ke Map
   }
 
   const contactList = Array.from(contacts.values());
@@ -411,7 +586,7 @@ app.get("/get-contacts", authenticateToken, (req, res) => {
 });
 
 // endpoint untuk memperbarui kontak berdasarkan ID
-app.put("/update-contact/:id", authenticateToken, (req, res) => {
+app.put("/update-contact/:id", authenticateToken, async (req, res) => {
   const { id } = req.params; // Ambil ID dari parameter URL
   const contactId = parseInt(id, 10); // Pastikan ID berupa integer
   const { error, value } = contactSchema.validate(req.body);
@@ -432,13 +607,13 @@ app.put("/update-contact/:id", authenticateToken, (req, res) => {
   contacts.set(contactId, updatedContact);
 
   // Simpan kontak ke file JSON
-  saveContactsToFile(contacts);
+  await saveContactsToFile(contacts);
 
   res.json({ message: "Kontak berhasil diperbarui!", contact: updatedContact });
 });
 
 // Endpoint untuk menghapus kontak berdasarkan ID
-app.delete("/delete-contact/:id", authenticateToken, (req, res) => {
+app.delete("/delete-contact/:id", authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id, 10); // Pastikan ID berupa integer
 
   // Cek apakah kontak dengan ID tersebut ada
@@ -450,13 +625,13 @@ app.delete("/delete-contact/:id", authenticateToken, (req, res) => {
   contacts.delete(id);
 
   // Simpan perubahan ke file JSON
-  saveContactsToFile(contacts);
+  await saveContactsToFile(contacts);
 
   res.json({ message: "Kontak berhasil dihapus!" });
 });
 
 // Endpoint untuk menambahkan pengingat
-app.post("/add-reminder", authenticateToken, (req, res) => {
+app.post("/add-reminder", authenticateToken, async (req, res) => {
   const { error, value } = reminderSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
@@ -495,20 +670,20 @@ app.post("/add-reminder", authenticateToken, (req, res) => {
   reminders.set(reminder.id, reminder);
 
   // Simpan pengingat ke file JSON
-  saveRemindersToFile(reminders);
+  await saveRemindersToFile(reminders);
 
   res.json({ message: "Pengingat pembayaran berhasil ditambahkan!", reminder });
 });
 
 // Endpoint untuk mendapatkan daftar pengingat dengan pagination
-app.get("/get-reminders", authenticateToken, (req, res) => {
+app.get("/get-reminders", authenticateToken, async (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
 
   // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
   if (reminders.size === 0 && fs.existsSync(remindersFilePath)) {
-    loadRemindersFromFile(); // Muat data dari file JSON ke Map
+    await loadRemindersFromFile(); // Muat data dari file JSON ke Map
   }
 
   const reminderList = Array.from(reminders.values());
@@ -525,10 +700,10 @@ app.get("/get-reminders", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar all pengingat
-app.get("/get-all-reminders", authenticateToken, (req, res) => {
+app.get("/get-all-reminders", authenticateToken, async (req, res) => {
   // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
   if (reminders.size === 0 && fs.existsSync(remindersFilePath)) {
-    loadRemindersFromFile(); // Muat data dari file JSON ke Map
+    await loadRemindersFromFile(); // Muat data dari file JSON ke Map
   }
 
   const reminderList = Array.from(reminders.values());
@@ -539,7 +714,7 @@ app.get("/get-all-reminders", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk memperbarui pengingat berdasarkan ID
-app.put("/update-reminder/:id", authenticateToken, (req, res) => {
+app.put("/update-reminder/:id", authenticateToken, async (req, res) => {
   const { id } = req.params; // Ambil ID dari parameter URL
   const reminderId = parseInt(id, 10); // Pastikan ID berupa integer
   const { error, value } = reminderSchema.validate(req.body);
@@ -580,7 +755,7 @@ app.put("/update-reminder/:id", authenticateToken, (req, res) => {
   reminders.set(reminderId, updatedReminder);
 
   // Simpan pengingat ke file JSON
-  saveRemindersToFile(reminders);
+  await saveRemindersToFile(reminders);
 
   res.json({
     message: "Pengingat berhasil diperbarui!",
@@ -589,7 +764,7 @@ app.put("/update-reminder/:id", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk menghapus pengingat berdasarkan ID
-app.delete("/delete-reminder/:id", authenticateToken, (req, res) => {
+app.delete("/delete-reminder/:id", authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id, 10); // Pastikan ID berupa integer
 
   // Cek apakah pengingat dengan ID tersebut ada
@@ -601,20 +776,20 @@ app.delete("/delete-reminder/:id", authenticateToken, (req, res) => {
   reminders.delete(id);
 
   // Simpan perubahan ke file JSON
-  saveRemindersToFile(reminders);
+  await saveRemindersToFile(reminders);
 
   res.json({ message: "Pengingat berhasil dihapus!" });
 });
 
 // Endpoint untuk mendapatkan daftar pengingat terkirim dengan pagination
-app.get("/get-sent-reminders", authenticateToken, (req, res) => {
+app.get("/get-sent-reminders", authenticateToken, async (req, res) => {
   const { page = 1, limit = 5 } = req.query;
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
 
   // Pastikan data pengingat terkirim dimuat dari file JSON jika belum dimuat
   if (sentReminders.size === 0 && fs.existsSync(sentRemindersFilePath)) {
-    loadSentRemindersFromFile(); // Muat data dari file JSON ke Map
+    await loadSentRemindersFromFile(); // Muat data dari file JSON ke Map
   }
 
   const sentReminderList = Array.from(sentReminders.values());
@@ -631,7 +806,7 @@ app.get("/get-sent-reminders", authenticateToken, (req, res) => {
 });
 
 // Endpoint untuk menjadwalkan ulang pengingat terkirim
-app.post("/reschedule-reminder/:id", authenticateToken, (req, res) => {
+app.post("/reschedule-reminder/:id", authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id, 10); // Pastikan ID berupa integer
 
   // Cek apakah pengingat terkirim dengan ID tersebut ada
@@ -650,8 +825,8 @@ app.post("/reschedule-reminder/:id", authenticateToken, (req, res) => {
   sentReminders.delete(id);
 
   // Simpan perubahan ke file JSON
-  saveRemindersToFile(reminders);
-  saveSentRemindersToFile(sentReminders);
+  await saveRemindersToFile(reminders);
+  await saveSentRemindersToFile(sentReminders);
 
   res.json({
     message: "Pengingat berhasil dijadwalkan ulang!",
