@@ -158,24 +158,25 @@ function reminderApp() {
     // Data reminders
     reminders: [],
     currentPage: 1,
-    limit: 5,
+    limit: 1,
     totalPages: 1,
 
     // Data kontak
     allContacts: [],
     contacts: [],
     currentPageContacts: 1,
-    limitContacts: 5,
+    limitContacts: 1,
     totalPagesContacts: 1,
     contactForm: {
       name: "",
       phoneNumber: "",
+      id: "",
     },
 
     // Data kontak yang sudah dikirim
     sentReminders: [],
     currentPageSentReminders: 1,
-    limitSentReminders: 5,
+    limitSentReminders: 1,
     totalPagesSentReminders: 1,
 
     // Template pesan
@@ -818,6 +819,29 @@ function reminderApp() {
         name: "",
         phoneNumber: "",
       };
+    },
+
+    // Handle update reminder
+    handleUpdateContact(contact) {
+      try {
+        // Validate input
+        if (!contact || !contact.id) {
+          throw new Error("Reminder data is invalid or incomplete.");
+        }
+
+        // Populate form fields
+        this.contactForm  = {
+          name: contact.name || "",
+          phoneNumber:  contact.phoneNumber || "",
+          id: contact.id || null,
+        };
+      } catch (error) {
+        console.error("Error in handleUpdate:", error);
+        this.showToast(
+          "Gagal memuat data pengingat. Periksa kembali data.",
+          "danger"
+        );
+      }
     },
 
     // Hapus kontak

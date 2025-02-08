@@ -139,7 +139,7 @@
                                 </li>
                             </ul>
                         </nav>
-               
+
                     </div>
                 </div>
             </div>
@@ -164,9 +164,12 @@
                                 <input type="text" class="form-control" id="contactPhoneNumber"
                                     x-model="contactForm.phoneNumber" required>
                             </div>
-                            <button type="submit" class="btn btn-primary my-3">Tambah Kontak</button>
+                            <input type="hidden" id="contactId" x-model="contactForm.id">
+                            <button type="submit" class="btn btn-primary my-3"
+                                x-text="contactForm.id ? 'Update Kontak' : 'Tambah Kontak'"></button>
+                            <button type="button" class="btn btn-secondary" x-show="contactForm.id"
+                                @click="resetContactForm">Cancel Update</button>
                         </form>
-
                     </div>
                 </div>
             </div>
@@ -184,8 +187,11 @@
                                         </h6>
                                         <p class="card-text"><strong><i class="fa-brands fa-whatsapp"></i> WhatsApp
                                                 Number:</strong> <span x-text="contact.phoneNumber"></span></p>
-                                        <button class="btn btn-sm btn-danger"
-                                            @click="handleDeleteContact(contact.id)">Hapus</button>
+                                                <button class="btn btn-sm btn-warning"
+                                                @click="handleUpdateContact(contact)">Update</button>
+                                            <button class="btn btn-sm btn-danger"
+                                                @click="handleDeleteContact(contact.id)">Delete</button>
+                                     
                                     </div>
                                 </div>
                             </template>
