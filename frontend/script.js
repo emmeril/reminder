@@ -971,16 +971,25 @@ function reminderApp() {
 
     // Template pesan
     applyTemplate(template) {
+      // Validasi: Pastikan semua input diisi
+      if (!this.form.phoneNumber || !this.form.paymentDate) {
+        this.showToast(
+          "Lengkapi semua data sebelum menggunakan template.",
+          "danger"
+        );
+        return;
+      }
+
       // Cari kontak berdasarkan nomor telepon yang dipilih
       const selectedContact = this.contacts.find(
         (contact) => contact.phoneNumber === this.form.phoneNumber
       );
 
-      // Jika kontak ditemukan, ganti [Nama] dengan nama kontak
+      // Jika kontak ditemukan, ganti placeholder dengan data aktual
       if (selectedContact) {
         this.form.message = template.content
           .replace("[Nama]", selectedContact.name)
-          .replace("[Jumlah]", "[Jumlah]") // Biarkan [Jumlah] sebagai placeholder
+          .replace("[Jumlah]", "[Jumlah]") // Tetap sebagai placeholder
           .replace("[Tanggal]", this.form.paymentDate)
           .replace(
             "[Bulan]",
@@ -990,8 +999,12 @@ function reminderApp() {
           );
       } else {
         // Jika kontak tidak ditemukan, beri peringatan
-        alert("Pilih kontak terlebih dahulu dari dropdown!");
+        this.showToast(
+          "Pilih kontak terlebih dahulu dari dropdown!",
+          "warning"
+        );
       }
+
       this.isDropdownOpen = false;
     },
 
