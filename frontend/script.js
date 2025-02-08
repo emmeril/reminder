@@ -981,7 +981,7 @@ function reminderApp() {
       }
 
       // Cari kontak berdasarkan nomor telepon yang dipilih
-      const selectedContact = this.contacts.find(
+      const selectedContact = this.allContacts.find(
         (contact) => contact.phoneNumber === this.form.phoneNumber
       );
 
