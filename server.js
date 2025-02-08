@@ -15,7 +15,14 @@ const fs = require("fs");
 const path = require("path");
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://202.70.133.37"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    maxAge: 600,
+  })
+);
 app.use(express.json());
 app.use(helmet());
 app.use(compression());
