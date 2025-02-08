@@ -17,7 +17,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://202.70.133.37"],
+    origin: ["http://202.70.133.37", "http://emmeril-reminder.ddnsx.my.id"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     maxAge: 600,
@@ -26,6 +26,7 @@ app.use(
 app.use(express.json());
 app.use(helmet());
 app.use(compression());
+app.set("trust proxy", 1);
 
 let reminders = new Map();
 let sentReminders = new Map();
