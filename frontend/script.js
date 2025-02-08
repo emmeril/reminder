@@ -146,6 +146,7 @@ function reminderApp() {
   return {
     token: localStorage.getItem("token"),
     username: localStorage.getItem("username"),
+
     // Data form reminder
     form: {
       phoneNumber: "",
@@ -155,7 +156,15 @@ function reminderApp() {
       reminderId: "",
     },
 
+    // Data form kontak
+    contactForm: {
+      name: "",
+      phoneNumber: "",
+      id: "",
+    },
+
     // Data reminders
+    allReminders: [],
     reminders: [],
     currentPage: 1,
     limit: 1,
@@ -167,17 +176,14 @@ function reminderApp() {
     currentPageContacts: 1,
     limitContacts: 1,
     totalPagesContacts: 1,
-    contactForm: {
-      name: "",
-      phoneNumber: "",
-      id: "",
-    },
 
     // Data kontak yang sudah dikirim
     sentReminders: [],
     currentPageSentReminders: 1,
     limitSentReminders: 1,
     totalPagesSentReminders: 1,
+
+    searchQuery: "",
 
     // Template pesan
     messageTemplates: [
@@ -233,6 +239,7 @@ function reminderApp() {
           this.fetchReminders(),
           this.fetchSentReminders(),
           this.fetchAllContacts(),
+          this.fetchAllReminders(),
         ])
           .then(() => {
             console.log("Initialization complete. Data fetched successfully.");
@@ -405,6 +412,51 @@ function reminderApp() {
           error.message || "Terjadi kesalahan saat mengambil data pengingat.",
           "danger"
         );
+      }
+    },
+
+    async fetchAllReminders() {
+      try {
+        // Set loading state
+        this.isLoadingAllReminders = true;
+
+        // Send API request for all contacts (no pagination)
+        const response = await fetch(`${API_BASE_URL}/get-all-reminders`, {
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+        });
+
+        // Check if the response is successful
+        if (!response.ok) {
+          let errorMessage = "Failed to fetch all reminders";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignore JSON parsing errors
+          }
+          throw new Error(errorMessage);
+        }
+
+        // Parse response JSON
+        const result = await response.json();
+
+        // Update contacts data with all contacts
+        this.allReminders = Array.isArray(result.allReminders)
+          ? result.allReminders
+          : [];
+
+        console.log("All contacts fetched successfully:", this.allReminders);
+      } catch (error) {
+        console.error("Failed to fetch allReminders:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan saat mengambil semua pengingat",
+          "danger"
+        );
+      } finally {
+        // Reset loading state
+        this.isLoadingAllReminders = false;
       }
     },
 
@@ -592,6 +644,25 @@ function reminderApp() {
           "danger"
         );
       }
+    },
+
+    searchReminders() {
+      const query = this.searchQuery.trim().toLowerCase();
+
+      if (query === "") {
+        // Jika pencarian kosong, tampilkan data dari halaman aktif
+        this.fetchReminders();
+      } else {
+        // Filter kontak berdasarkan nama atau nomor telepon
+        // Filter kontak berdasarkan pesan atau nomor telepon
+        this.reminders = this.allReminders.filter(
+          (reminders) =>
+            reminders.message.toLowerCase().includes(query) ||
+            reminders.phoneNumber.toLowerCase().includes(query)
+        );
+      }
+
+      console.log("Hasil pencarian pengingat:", this.reminders);
     },
 
     /* ------------------------ METHOD UNTUK KONTAK ------------------------ */
@@ -830,9 +901,9 @@ function reminderApp() {
         }
 
         // Populate form fields
-        this.contactForm  = {
+        this.contactForm = {
           name: contact.name || "",
-          phoneNumber:  contact.phoneNumber || "",
+          phoneNumber: contact.phoneNumber || "",
           id: contact.id || null,
         };
       } catch (error) {
@@ -963,6 +1034,22 @@ function reminderApp() {
       } catch (error) {
         console.error("Error applying template:", error.message);
         this.showToast(error.message, "danger");
+      }
+    },
+
+    searchContacts() {
+      const query = this.searchQuery.trim().toLowerCase();
+
+      if (query === "") {
+        // Jika pencarian kosong, tampilkan data dari halaman aktif
+        this.fetchContacts();
+      } else {
+        // Filter kontak berdasarkan nama atau nomor telepon
+        this.contacts = this.allContacts.filter(
+          (contact) =>
+            contact.name.toLowerCase().includes(query) ||
+            contact.phoneNumber.toLowerCase().includes(query)
+        );
       }
     },
     /* ------------------------ METHOD UNTUK REMINDER YANG SUDAH DIKIRIM ------------------------ */

@@ -100,6 +100,11 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title"><i class="fa-solid fa-rectangle-list"></i> Scheduled Reminders</h5>
+                        <!-- Input Pencarian -->
+                        <div class="my-3">
+                            <input type="text" class="form-control" placeholder="Cari Reminders..." x-model="searchQuery"
+                                @input="searchReminders" />
+                        </div>
                         <div id="reminderList">
                             <template x-for="reminder in reminders" :key="reminder.id">
                                 <div class="card mb-3">
@@ -178,7 +183,12 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title"><i class="fa-solid fa-address-book"></i> Daftar Kontak</h5>
-                        <div id="contactList" class="mt-3">
+                        <!-- Input Pencarian -->
+                        <div class="my-3">
+                            <input type="text" class="form-control" placeholder="Cari kontak..." x-model="searchQuery"
+                                @input="searchContacts" />
+                        </div>
+                        <div id="contactList" class="mb-3">
                             <template x-for="contact in contacts" :key="contact.id">
                                 <div class="card mb-3">
                                     <div class="card-body">
@@ -187,11 +197,11 @@
                                         </h6>
                                         <p class="card-text"><strong><i class="fa-brands fa-whatsapp"></i> WhatsApp
                                                 Number:</strong> <span x-text="contact.phoneNumber"></span></p>
-                                                <button class="btn btn-sm btn-warning"
-                                                @click="handleUpdateContact(contact)">Update</button>
-                                            <button class="btn btn-sm btn-danger"
-                                                @click="handleDeleteContact(contact.id)">Delete</button>
-                                     
+                                        <button class="btn btn-sm btn-warning"
+                                            @click="handleUpdateContact(contact)">Update</button>
+                                        <button class="btn btn-sm btn-danger"
+                                            @click="handleDeleteContact(contact.id)">Delete</button>
+
                                     </div>
                                 </div>
                             </template>

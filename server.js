@@ -504,6 +504,20 @@ app.get("/get-reminders", authenticateToken, (req, res) => {
   });
 });
 
+// Endpoint untuk mendapatkan daftar all pengingat
+app.get("/get-all-reminders", authenticateToken, (req, res) => {
+  // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
+  if (reminders.size === 0 && fs.existsSync(remindersFilePath)) {
+    loadRemindersFromFile(); // Muat data dari file JSON ke Map
+  }
+
+  const reminderList = Array.from(reminders.values());
+
+  res.json({
+    allReminders: reminderList,
+  });
+});
+
 // Endpoint untuk memperbarui pengingat berdasarkan ID
 app.put("/update-reminder/:id", authenticateToken, (req, res) => {
   const { id } = req.params; // Ambil ID dari parameter URL
