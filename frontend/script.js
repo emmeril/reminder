@@ -965,28 +965,8 @@ function reminderApp() {
     },
     // Pilih kontak dari dropdown
     selectContact(contact) {
-      try {
-        // Validate the contact object and its phoneNumber property
-        if (!contact || !contact.phoneNumber) {
-          throw new Error("Kontak yang dipilih tidak valid.");
-        }
-
-        // Format the phone number
-        const formattedPhoneNumber = this.formatPhoneNumber(
-          contact.phoneNumber
-        );
-
-        // Update the form with the selected contact's phone number
-        this.form.phoneNumber = formattedPhoneNumber;
-
-        // Close the dropdown menu
-        this.isContactDropdownOpen = false;
-
-        console.log(`Contact selected: ${formattedPhoneNumber}`);
-      } catch (error) {
-        console.error("Error selecting contact:", error.message);
-        this.showToast("Gagal memilih kontak. Silakan coba lagi.", "danger");
-      }
+      this.form.phoneNumber = contact.phoneNumber;
+      this.isContactDropdownOpen = false;
     },
 
     // Template pesan
