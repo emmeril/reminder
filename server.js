@@ -132,16 +132,28 @@ loadSentRemindersFromFile();
 
 // Middleware
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-  if (!token) return res.sendStatus(401);
+  try {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Token tidak ditemukan atau format salah" });
+    }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
+    const token = authHeader.split(" ")[1];
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) {
+        const errorMessage = err.name === "TokenExpiredError" ? 
+          "Token telah kedaluwarsa" : "Token tidak valid";
+        return res.status(403).json({ message: errorMessage });
+      }
+      req.user = user;
+      next();
+    });
+  } catch (error) {
+    console.error("Error di middleware authenticateToken:", error.message);
+    return res.status(500).json({ message: "Terjadi kesalahan pada server" });
+  }
 };
+
 
 // Schemas untuk user login dan register
 const userSchema = Joi.object({
