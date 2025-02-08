@@ -610,10 +610,21 @@ app.post("/reschedule-reminder/:id", authenticateToken, (req, res) => {
 
 // Endpoint untuk mendapatkan status WhatsApp
 app.get("/whatsapp-status", authenticateToken, (req, res) => {
-  res.json({
-    authenticated: isAuthenticated,
-    qrCode: qrCodeData,
-  });
+  try {
+    // Validate the state
+    const status = {
+      authenticated: Boolean(isAuthenticated),
+      qrCode: isAuthenticated ? null : qrCodeData || null, // Provide QR code only if not authenticated
+    };
+
+    // Respond with the WhatsApp status
+    res.status(200).json(status);
+  } catch (error) {
+    console.error("Error in /whatsapp-status route:", error);
+    res.status(500).json({
+      message: "Failed to retrieve WhatsApp status. Please try again later.",
+    });
+  }
 });
 
 // Handle 404 untuk endpoint yang tidak ditemukan
