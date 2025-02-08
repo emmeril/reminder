@@ -20,17 +20,6 @@
                 <div class="card">
                     <div class="card-body">
                         <h3 class="card-title text-center mb-4">Reminder Emmeril Hotspot</h3>
-                        <ul class="nav nav-tabs mb-4">
-                            <li class="nav-item">
-                                <button class="nav-link" :class="{ 'active': isLogin }"
-                                    @click="isLogin = true">Login</button>
-                            </li>
-                            <!-- <li class="nav-item">
-                                <button class="nav-link" :class="{ 'active': !isLogin }"
-                                    @click="isLogin = false">Register</button>
-                            </li> -->
-                        </ul>
-
                         <form @submit.prevent="submit">
                             <div class="form-group mb-3">
                                 <label><i class="fa-solid fa-user"></i> Username</label>
@@ -41,7 +30,7 @@
                                 <input type="password" class="form-control" x-model="form.password" required>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block my-3">
-                                <span x-text="isLogin ? 'Login' : 'Register'"></span>
+                                Login
                             </button>
                         </form>
                     </div>

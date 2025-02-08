@@ -177,79 +177,156 @@ const whatsappClient = new Client({
 
 // Menampilkan QR code untuk login
 whatsappClient.on("qr", (qr) => {
-  console.log("QR code untuk login:");
-  qrcode.generate(qr, { small: true });
+  const timestamp = new Date().toISOString();
+
+  // Update global state
   qrCodeData = qr;
   isAuthenticated = false;
+
+  // Log QR code with timestamp
+  console.log(`[${timestamp}] QR code untuk login dihasilkan.`);
+
+  // Generate QR code in the console
+  try {
+    qrcode.generate(qr, { small: true });
+  } catch (error) {
+    console.error(
+      `[${timestamp}] Gagal menghasilkan QR code: ${error.message}`
+    );
+  }
+
+  // Notify other components (e.g., send QR code to a frontend system)
+  notifyQrGenerated(qr); // Optional: Replace with your implementation
 });
 
 // Saat klien siap digunakan
-whatsappClient.on("ready", () => {
-  console.log("Bot WhatsApp siap digunakan dan terhubung ke akun WhatsApp.");
-  isAuthenticated = true;
-  qrCodeData = null;
+whatsappClient.on("disconnected", (reason) => {
+  console.error(`Bot WhatsApp terputus: ${reason}`);
+  isAuthenticated = false;
+});
+
+whatsappClient.on("auth_failure", (msg) => {
+  console.error(`Gagal autentikasi: ${msg}`);
+  isAuthenticated = false;
 });
 
 // Fungsi untuk mengirim pesan ke WhatsApp
 const sendWhatsAppMessage = async (phoneNumber, message) => {
+  // Input validation
+  if (!phoneNumber || !/^\d+$/.test(phoneNumber)) {
+    console.error("Invalid phone number:", phoneNumber);
+    throw new Error("Phone number must be a valid numeric string.");
+  }
+
+  if (!message || message.trim().length === 0) {
+    console.error("Message cannot be empty.");
+    throw new Error("Message must be a non-empty string.");
+  }
+
   try {
-    const chatId = `${phoneNumber}@c.us`;
+    const chatId = `${phoneNumber}@c.us`; // Format chat ID
     await whatsappClient.sendMessage(chatId, message);
-    console.log(`Pesan berhasil dikirim ke ${phoneNumber}`);
+
+    // Log successful message details
+    console.log(
+      `Pesan berhasil dikirim ke ${phoneNumber} | Panjang pesan: ${
+        message.length
+      } | Waktu: ${new Date().toISOString()}`
+    );
+    return { success: true, message: "Message sent successfully." };
   } catch (error) {
-    console.error("Gagal mengirim pesan:", error);
-    throw error;
+    // Provide a more descriptive error for debugging
+    console.error(
+      `Gagal mengirim pesan ke ${phoneNumber} | Pesan: "${message}" | Error: ${error.message}`
+    );
+    throw new Error("Failed to send WhatsApp message. Please try again later.");
   }
 };
 
 // Fungsi untuk menjalankan cron job
-cron.schedule("* * * * *", () => {
-  const now = new Date();
-  console.log(`Menjalankan cron job pada: ${now}`);
+cron.schedule("* * * * *", async () => {
+  const now = Date.now();
+  console.log(`Menjalankan cron job pada: ${new Date(now).toISOString()}`);
 
-  // Loop through reminders
-  reminders.forEach((reminder) => {
-    // Check if the reminder time has passed
-    if (now >= reminder.reminderDateTime) {
-      // Send a WhatsApp message
-      const message = `Pengingat pembayaran: ${reminder.message}`;
-      sendWhatsAppMessage(reminder.phoneNumber, message);
+  // Check if there are any reminders to process
+  if (reminders.size === 0) {
+    console.log("Tidak ada pengingat untuk diproses.");
+    return;
+  }
 
-      // Add reminder to sent reminders
-      sentReminders.set(reminder.id, reminder);
-      reminders.delete(reminder.id);
+  // Iterate over reminders
+  for (const [id, reminder] of reminders) {
+    try {
+      // Check if the reminder time has passed
+      if (now >= new Date(reminder.reminderDateTime).getTime()) {
+        const message = `Pengingat pembayaran: ${reminder.message}`;
+
+        // Await WhatsApp message sending
+        await sendWhatsAppMessage(reminder.phoneNumber, message);
+
+        // Log success and move reminder to sent reminders
+        console.log(`Pesan berhasil dikirim ke ${reminder.phoneNumber}`);
+        sentReminders.set(id, reminder);
+        reminders.delete(id);
+      }
+    } catch (error) {
+      console.error(
+        `Gagal mengirim pesan untuk pengingat ID ${id} ke ${reminder.phoneNumber}:`,
+        error.message
+      );
     }
-  });
+  }
 
-  // Save reminders to file
-  saveRemindersToFile(reminders);
-  saveSentRemindersToFile(sentReminders);
+  // Save reminders and sent reminders to file
+  try {
+    saveRemindersToFile(reminders);
+    saveSentRemindersToFile(sentReminders);
+    console.log("Data pengingat berhasil diperbarui.");
+  } catch (error) {
+    console.error("Gagal menyimpan data pengingat:", error.message);
+  }
 });
 
 /**
  * Endpoint for user login
  */
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-
-  // Retrieve data from .env
-  const envUsername = process.env.ADMIN_USERNAME;
-  const envPassword = process.env.ADMIN_PASSWORD;
-
-  if (!envUsername || !envPassword) {
-    return res
-      .status(500)
-      .json({ message: "Username atau password belum dikonfigurasi di .env" });
+  // Validate input using Joi schema
+  const { error, value } = userSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
   }
 
-  // Validate username & password
+  const { username, password } = value;
+
+  // Retrieve environment variables
+  const envUsername = process.env.ADMIN_USERNAME;
+  const envPassword = process.env.ADMIN_PASSWORD;
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!envUsername || !envPassword || !jwtSecret) {
+    console.error("Missing required environment variables.");
+    return res.status(500).json({
+      message:
+        "Server configuration error. Please check environment variables.",
+    });
+  }
+
+  // Validate credentials
   if (username !== envUsername || password !== envPassword) {
-    return res.status(401).json({ message: "Username atau password salah" });
+    return res.status(401).json({ message: "Invalid username or password." });
   }
 
   // Create JWT token
-  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
-  res.json({ token });
+  try {
+    const token = jwt.sign({ username }, jwtSecret, {
+      expiresIn: process.env.JWT_EXPIRATION || "1h", // Default to 1 hour if not set
+    });
+    return res.json({ token });
+  } catch (err) {
+    console.error("Error creating JWT token:", err);
+    return res.status(500).json({ message: "Internal server error." });
+  }
 });
 
 // Endpoint untuk menambahkan kontak

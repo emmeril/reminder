@@ -1,27 +1,68 @@
+// Define a base API URL
+const API_BASE_URL = "http://202.70.133.37:3000";
+// Define a configurable login page URL
+const LOGIN_PAGE_URL = "index.html";
+// List of protected pages
+const PROTECTED_PAGES = ["app.html"];
+
 // Authentication Logic
 function auth() {
   return {
-    isLogin: true,
     form: { username: "", password: "" },
 
     async submit() {
+      // Client-side validation
+      if (!this.form.username || this.form.username.trim().length < 3) {
+        this.showToast(
+          "Username harus diisi dan minimal 3 karakter.",
+          "danger"
+        );
+        return;
+      }
+      if (!this.form.password || this.form.password.trim().length < 6) {
+        this.showToast(
+          "Password harus diisi dan minimal 6 karakter.",
+          "danger"
+        );
+        return;
+      }
+
       try {
-        const response = await fetch("http://202.70.133.37:3000/login", {
+        const response = await fetch(`${API_BASE_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(this.form),
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message);
+        if (!response.ok) throw new Error(data.message || "Gagal login.");
 
-        if (this.isLogin) {
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("username", this.form.username);
-          window.location.href = "app.html";
-        }
+        // Store token and username in localStorage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", this.form.username);
+
+        // Redirect to app page
+        window.location.href = "app.html";
       } catch (error) {
-        alert(error.message);
+        console.error("Login error:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan, coba lagi.",
+          "danger"
+        );
+      }
+    },
+
+    // Display a toast message
+    showToast(message, type = "success") {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.textContent = message;
+        toast.className = `toast ${type}`;
+        toast.classList.add("show");
+
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 3000);
       }
     },
   };
@@ -39,14 +80,66 @@ async function fetchData(url, options = {}) {
 // Function to check if user is authenticated
 function checkAuthentication() {
   const token = localStorage.getItem("token");
+
+  // Check if token exists
   if (!token) {
-    window.location.href = "index.html";
+    alert("Anda belum login. Silakan login terlebih dahulu.");
+    window.location.href = LOGIN_PAGE_URL;
+    return;
+  }
+
+  // Optional: Validate token structure (basic validation for JWT)
+  if (!isValidToken(token)) {
+    alert("Sesi Anda telah kedaluwarsa. Silakan login kembali.");
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    window.location.href = LOGIN_PAGE_URL;
+    return;
+  }
+
+  console.log("Authentication check passed.");
+}
+
+// Helper function to validate the structure of the token (JWT)
+function isValidToken(token) {
+  try {
+    // JWT tokens have 3 parts separated by dots
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+
+    // Decode the payload (second part of the JWT) and check its expiry
+    const payload = JSON.parse(atob(parts[1]));
+    const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+
+    // Check if the token has expired
+    if (payload.exp && payload.exp < currentTime) {
+      console.warn("Token has expired.");
+      return false;
+    }
+
+    return true; // Token is valid
+  } catch (error) {
+    console.error("Invalid token structure:", error);
+    return false;
   }
 }
 
-// Call checkAuthentication on app.html load
-if (window.location.pathname === "app.html") {
-  checkAuthentication();
+// Function to check if the current page requires authentication
+function isProtectedPage(pathname) {
+  return PROTECTED_PAGES.some((page) => pathname.endsWith(page));
+}
+
+// Call authentication check for protected pages
+if (isProtectedPage(window.location.pathname)) {
+  try {
+    checkAuthentication();
+    console.log(`Authentication check passed for ${window.location.pathname}.`);
+  } catch (error) {
+    console.error(
+      `Authentication check failed on ${window.location.pathname}:`,
+      error
+    );
+  }
 }
 
 function reminderApp() {
@@ -121,89 +214,152 @@ function reminderApp() {
     qrStatus: "Memuat QR Code...",
     qrInterval: null,
 
-    // Toast Function
-    showToast(message, type = "success") {
-      const toast = document.getElementById("toast");
-      toast.textContent = message;
-      toast.className = `toast ${type}`;
-      toast.classList.add("show");
+    init() {
+      try {
+        // Check for authentication
+        if (!this.token) {
+          console.warn("Token not found. Redirecting to login page.");
+          window.location.href = "index.html";
+          return;
+        }
 
-      setTimeout(() => {
-        toast.classList.remove("show");
-      }, 3000);
+        // Initialize the application
+        console.log("Initializing application...");
+        Promise.all([
+          this.checkWhatsAppStatus(),
+          this.fetchContacts(),
+          this.fetchReminders(),
+          this.fetchSentReminders(),
+        ])
+          .then(() => {
+            console.log("Initialization complete. Data fetched successfully.");
+          })
+          .catch((error) => {
+            console.error("Error during initialization:", error);
+            this.showToast(
+              "Terjadi kesalahan saat memuat data awal aplikasi. Silakan coba lagi.",
+              "danger"
+            );
+          });
+
+        // Auto-refresh reminders every 5 minutes
+        this.startAutoRefresh(300000); // 5 minutes in milliseconds
+      } catch (error) {
+        console.error("Unexpected error during initialization:", error);
+      }
     },
 
-    init() {
-      if (!this.token) window.location.href = "index.html";
-      this.checkWhatsAppStatus();
-      this.fetchContacts();
-      this.fetchReminders();
-      this.fetchSentReminders();
+    // Start auto-refresh for reminders
+    startAutoRefresh(interval) {
+      if (this.autoRefreshInterval) {
+        clearInterval(this.autoRefreshInterval);
+      }
 
-      // Auto-refresh setiap 5 menit
-      setInterval(() => {
-        this.fetchReminders();
-      }, 300000); // 5 menit dalam milidetik
+      this.autoRefreshInterval = setInterval(async () => {
+        try {
+          console.log("Auto-refreshing reminders...");
+          await this.fetchReminders();
+        } catch (error) {
+          console.error("Error during auto-refresh of reminders:", error);
+        }
+      }, interval);
     },
 
     // Di dalam function app() - script.js
     async checkWhatsAppStatus() {
       try {
-        const status = await fetchData(
-          "http://202.70.133.37:3000/whatsapp-status",
-          {
-            headers: { Authorization: `Bearer ${this.token}` },
-          }
-        );
+        // Fetch the WhatsApp status from the server
+        const status = await fetchData(`${API_BASE_URL}/whatsapp-status`, {
+          headers: { Authorization: `Bearer ${this.token}` },
+        });
 
+        // Handle unauthenticated state
         if (!status.authenticated) {
-          this.showQrModal = true;
-          if (status.qrCode) {
-            this.generateQRCode(status.qrCode);
-            this.qrStatus = "Scan QR Code untuk melanjutkan";
-          } else {
-            this.qrStatus = "Menghubungkan ke WhatsApp...";
-          }
-
-          // Mulai interval jika belum ada
-          if (!this.qrInterval) {
-            this.qrInterval = setInterval(async () => {
-              const newStatus = await this.checkWhatsAppStatus();
-              if (newStatus?.authenticated) {
-                clearInterval(this.qrInterval);
-                this.qrInterval = null;
-                this.showQrModal = false;
-                this.$nextTick(() => {
-                  alert("WhatsApp terhubung! Silahkan lanjutkan.");
-                });
-              }
-            }, 2000);
-          }
-        } else {
-          // Jika sudah terautentikasi, pastikan modal ditutup
-          this.showQrModal = false;
-          clearInterval(this.qrInterval);
-          this.qrInterval = null;
-          return { authenticated: true };
+          this.handleUnauthenticatedStatus(status);
+          return { authenticated: false };
         }
+
+        // Handle authenticated state
+        this.handleAuthenticatedStatus();
+        return { authenticated: true };
       } catch (error) {
         console.error("Error checking WhatsApp status:", error);
+        this.showToast(
+          "Gagal memeriksa status WhatsApp. Silakan coba lagi.",
+          "danger"
+        );
       }
     },
 
-    generateQRCode(qrData) {
-      const container = document.getElementById("qrCodeContainer");
-      container.innerHTML = "";
+    // Handle unauthenticated status
+    handleUnauthenticatedStatus(status) {
+      this.showQrModal = true;
 
-      // Gunakan library QRCode.js
-      new QRCode(container, {
-        text: qrData,
-        width: 256,
-        height: 256,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H,
+      // Update QR status message
+      if (status.qrCode) {
+        this.generateQRCode(status.qrCode);
+        this.qrStatus = "Scan QR Code untuk melanjutkan";
+      } else {
+        this.qrStatus = "Menghubungkan ke WhatsApp...";
+      }
+
+      // Start interval to retry authentication check
+      if (!this.qrInterval) {
+        this.qrInterval = setInterval(async () => {
+          const newStatus = await this.checkWhatsAppStatus();
+          if (newStatus?.authenticated) {
+            this.handleAuthenticatedStatus();
+          }
+        }, this.retryInterval || 2000); // Use configurable retry interval
+      }
+    },
+
+    // Handle authenticated status
+    handleAuthenticatedStatus() {
+      this.showQrModal = false;
+      clearInterval(this.qrInterval);
+      this.qrInterval = null;
+      this.$nextTick(() => {
+        this.showToast("WhatsApp terhubung! Silahkan lanjutkan.", "success");
       });
+    },
+
+    generateQRCode(qrData) {
+      try {
+        // Validate QR data
+        if (!qrData || typeof qrData !== "string") {
+          throw new Error("QR data is invalid or missing.");
+        }
+
+        // Get the container element
+        const container = document.getElementById("qrCodeContainer");
+        if (!container) {
+          throw new Error("QR code container element not found.");
+        }
+
+        // Clear the container
+        container.innerHTML = "";
+
+        // Configure QR code options
+        const qrCodeOptions = {
+          text: qrData,
+          width: this.qrCodeWidth || 256, // Default to 256 if not set
+          height: this.qrCodeHeight || 256, // Default to 256 if not set
+          colorDark: this.qrCodeColorDark || "#000000", // Default to black
+          colorLight: this.qrCodeColorLight || "#ffffff", // Default to white
+          correctLevel: QRCode.CorrectLevel.H, // High error correction level
+        };
+
+        // Generate the QR code
+        new QRCode(container, qrCodeOptions);
+        console.log("QR code successfully generated.");
+      } catch (error) {
+        console.error("Failed to generate QR code:", error.message);
+        this.showToast(
+          "Gagal menghasilkan QR Code. Silakan coba lagi.",
+          "danger"
+        );
+      }
     },
 
     /* ------------------------ METHOD UNTUK REMINDER ------------------------ */
@@ -211,8 +367,13 @@ function reminderApp() {
     // Ambil data reminders
     async fetchReminders() {
       try {
+        // Validate pagination inputs
+        if (this.currentPage <= 0 || this.limit <= 0) {
+          throw new Error("Invalid pagination parameters.");
+        }
+
         const response = await fetch(
-          `http://202.70.133.37:3000/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
+          `${API_BASE_URL}/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
           {
             headers: {
               Authorization: `Bearer ${this.token}`,
@@ -221,29 +382,46 @@ function reminderApp() {
         );
 
         if (!response.ok) {
-          throw new Error("Gagal mengambil data pengingat");
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Gagal mengambil data pengingat dari server."
+          );
         }
 
         const result = await response.json();
 
-        this.reminders = result.reminders;
-        this.totalPages = result.totalPagesReminders;
+        // Ensure response has valid data
+        this.reminders = Array.isArray(result.reminders)
+          ? result.reminders
+          : [];
+        this.totalPages = result.totalPagesReminders || 1;
+        console.log("Data pengingat berhasil diambil:", this.reminders);
       } catch (error) {
         console.error("Error saat mengambil pengingat:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan saat mengambil data pengingat.",
+          "danger"
+        );
       }
     },
 
     // Submit form reminder
     async submitForm() {
       try {
-        // Tentukan URL dan metode HTTP berdasarkan apakah reminderId tersedia
-        const url = this.form.reminderId
-          ? `http://202.70.133.37:3000/update-reminder/${this.form.reminderId}`
-          : "http://202.70.133.37:3000/add-reminder";
+        // Validate input
+        if (!this.validateForm()) {
+          this.showToast("Semua data harus diisi dengan benar.", "danger");
+          return;
+        }
 
-        const method = this.form.reminderId ? "PUT" : "POST";
+        // Determine the URL and method
+        const isUpdate = Boolean(this.form.reminderId);
+        const url = `${API_BASE_URL}/${
+          isUpdate ? `update-reminder/${this.form.reminderId}` : "add-reminder"
+        }`;
+        const method = isUpdate ? "PUT" : "POST";
 
-        // Data yang akan dikirim
+        // Prepare the request payload
         const data = {
           phoneNumber: this.form.phoneNumber,
           paymentDate: this.form.paymentDate,
@@ -251,9 +429,12 @@ function reminderApp() {
           message: this.form.message,
         };
 
-        // Kirim permintaan ke server
+        // Indicate loading state
+        this.isLoading = true;
+
+        // Send the request
         const response = await fetch(url, {
-          method: method,
+          method,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${this.token}`,
@@ -261,37 +442,65 @@ function reminderApp() {
           body: JSON.stringify(data),
         });
 
-        // Periksa jika respons tidak OK
+        // Check the response status
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Gagal menyimpan pengingat");
+          let errorMessage = "Gagal menyimpan pengingat";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignore JSON parsing errors
+          }
+          throw new Error(errorMessage);
         }
 
-        // Ambil respons JSON
+        // Process the successful response
         const result = await response.json();
+        this.showToast(
+          result.message || "Pengingat berhasil disimpan!",
+          "success"
+        );
 
-        // Tampilkan pesan sukses
-        this.showToast(result.message || "Pengingat berhasil disimpan!");
-
-        // Perbarui daftar pengingat
-        this.fetchReminders();
-
-        // Reset form setelah sukses
+        // Refresh reminders list and reset form
+        await this.fetchReminders();
         this.resetForm();
       } catch (error) {
         console.error("Error saat menyimpan pengingat:", error);
-        this.showToast(error.message || "Terjadi kesalahan, coba lagi.");
+        this.showToast(
+          error.message || "Terjadi kesalahan, coba lagi.",
+          "danger"
+        );
+      } finally {
+        // Reset loading state
+        this.isLoading = false;
       }
+    },
+
+    // Helper function to validate form data
+    validateForm() {
+      return (
+        this.form.phoneNumber &&
+        /^\d+$/.test(this.form.phoneNumber) && // Ensure phone number is numeric
+        this.form.paymentDate &&
+        this.form.reminderTime &&
+        this.form.message.trim().length > 0
+      );
     },
 
     // Reset form reminder
     resetForm() {
-      this.form = {
+      // Use a single source of truth for default form values
+      this.form = this.getDefaultFormValues();
+    },
+
+    // Helper function to define default form values
+    getDefaultFormValues() {
+      return {
         phoneNumber: "",
         paymentDate: "",
         reminderTime: "",
         message: "",
-        reminderId: "",
+        reminderId: null,
       };
     },
 
@@ -302,31 +511,84 @@ function reminderApp() {
 
     // Handle update reminder
     handleUpdate(reminder) {
-      this.form.phoneNumber = reminder.phoneNumber;
-      this.form.paymentDate = new Date(reminder.reminderDateTime)
-        .toISOString()
-        .split("T")[0];
-      this.form.reminderTime = new Date(reminder.reminderDateTime)
-        .toTimeString()
-        .split(" ")[0]
-        .substring(0, 5);
-      this.form.message = reminder.message;
-      this.form.reminderId = reminder.id;
+      try {
+        // Validate input
+        if (!reminder || !reminder.reminderDateTime) {
+          throw new Error("Reminder data is invalid or incomplete.");
+        }
+
+        // Parse reminderDateTime only once
+        const reminderDate = new Date(reminder.reminderDateTime);
+        if (isNaN(reminderDate.getTime())) {
+          throw new Error("Invalid reminder date format.");
+        }
+
+        // Populate form fields
+        this.form = {
+          phoneNumber: reminder.phoneNumber || "",
+          paymentDate: this.formatDate(reminderDate),
+          reminderTime: this.formatTime(reminderDate),
+          message: reminder.message || "",
+          reminderId: reminder.id || null,
+        };
+      } catch (error) {
+        console.error("Error in handleUpdate:", error);
+        this.showToast(
+          "Gagal memuat data pengingat. Periksa kembali data.",
+          "danger"
+        );
+      }
+    },
+
+    // Helper method to format date as YYYY-MM-DD
+    formatDate(date) {
+      return date.toISOString().split("T")[0];
+    },
+
+    // Helper method to format time as HH:mm
+    formatTime(date) {
+      return date.toTimeString().split(" ")[0].substring(0, 5);
     },
 
     // Hapus reminder
     async handleDelete(id) {
-      const result = await fetchData(
-        `http://202.70.133.37:3000/delete-reminder/${id}`,
-        {
-          headers: { Authorization: `Bearer ${this.token}` },
-          method: "DELETE",
+      try {
+        // Validate the ID
+        if (!id) {
+          throw new Error("ID pengingat tidak valid.");
         }
-      );
 
-      // alert(result.message);
-      this.showToast("Reminder dihapus!", "danger");
-      this.fetchReminders();
+        // Send DELETE request
+        const response = await fetch(`${API_BASE_URL}/delete-reminder/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+        });
+
+        // Check for success
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Gagal menghapus pengingat. Silakan coba lagi."
+          );
+        }
+
+        const result = await response.json();
+
+        // Show success message and refresh reminders
+        this.showToast(
+          result.message || "Pengingat berhasil dihapus!",
+          "success"
+        );
+        await this.fetchReminders();
+      } catch (error) {
+        console.error("Error saat menghapus pengingat:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan saat menghapus pengingat.",
+          "danger"
+        );
+      }
     },
 
     /* ------------------------ METHOD UNTUK KONTAK ------------------------ */
@@ -334,9 +596,17 @@ function reminderApp() {
     // Fetch data kontak dengan pagination yang benar
     async fetchContacts() {
       try {
-        // Kirim permintaan untuk mendapatkan data kontak
+        // Validate pagination inputs
+        if (this.currentPageContacts <= 0 || this.limitContacts <= 0) {
+          throw new Error("Invalid pagination parameters.");
+        }
+
+        // Set loading state
+        this.isLoadingContacts = true;
+
+        // Send API request
         const response = await fetch(
-          `http://202.70.133.37:3000/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`,
+          `${API_BASE_URL}/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`,
           {
             headers: {
               Authorization: `Bearer ${this.token}`,
@@ -344,128 +614,269 @@ function reminderApp() {
           }
         );
 
-        // Periksa jika respons tidak berhasil
+        // Check if the response is successful
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch contacts");
+          let errorMessage = "Failed to fetch contacts";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignore JSON parsing errors
+          }
+          throw new Error(errorMessage);
         }
 
-        // Parsing data JSON dari respons
+        // Parse response JSON
         const result = await response.json();
 
-        // Perbarui data kontak di state/frontend
-        this.contacts = result.contacts;
-        this.totalPagesContacts = result.totalPagesContacts;
+        // Update contacts data
+        this.contacts = Array.isArray(result.contacts) ? result.contacts : [];
+        this.totalPagesContacts = result.totalPagesContacts || 1;
+
+        console.log("Contacts fetched successfully:", this.contacts);
       } catch (error) {
-        // Tangani error dan log ke konsol
         console.error("Failed to fetch contacts:", error);
         this.showToast(
           error.message || "Terjadi kesalahan saat mengambil daftar kontak",
           "danger"
         );
+      } finally {
+        // Reset loading state
+        this.isLoadingContacts = false;
       }
     },
 
     // Format nomor telepon
     formatPhoneNumber(input) {
-      // Hapus semua karakter non-digit kecuali '+'
-      let cleaned = input.replace(/[^\d+]/g, "");
+      try {
+        // Validate input
+        if (typeof input !== "string" || input.trim() === "") {
+          throw new Error("Nomor telepon tidak valid.");
+        }
 
-      // Handle nomor yang diawali 0
-      if (cleaned.startsWith("0")) {
-        cleaned = "62" + cleaned.slice(1);
-      }
-      // Handle nomor yang diawali 8 (tanpa kode negara)
-      else if (cleaned.startsWith("8") && !cleaned.startsWith("62")) {
-        cleaned = "62" + cleaned;
-      }
-      // Handle nomor yang diawali +62 atau 62 tanpa +
-      else if (cleaned.startsWith("+62")) {
-        cleaned = cleaned.slice(1); // Hapus '+'
-      }
+        // Remove all non-digit characters except '+'
+        let cleaned = input.replace(/[^\d+]/g, "");
 
-      // Pastikan tidak melebihi panjang maksimal
-      return cleaned.substring(0, 14); // 62 + 11 digit
+        // Handle prefixes
+        if (cleaned.startsWith("0")) {
+          // Replace leading '0' with '62' (Indonesia country code)
+          cleaned = "62" + cleaned.slice(1);
+        } else if (cleaned.startsWith("8") && !cleaned.startsWith("62")) {
+          // Add '62' for numbers starting with '8'
+          cleaned = "62" + cleaned;
+        } else if (cleaned.startsWith("+62")) {
+          // Remove the '+' sign
+          cleaned = cleaned.slice(1);
+        }
+
+        // Validate length (Indonesia numbers are typically 10-13 digits after country code)
+        if (cleaned.length < 10 || cleaned.length > 15) {
+          throw new Error("Nomor telepon memiliki panjang yang tidak valid.");
+        }
+
+        return cleaned;
+      } catch (error) {
+        console.error("Error in formatPhoneNumber:", error.message);
+        return null; // Return null for invalid inputs
+      }
     },
 
     // Submit form kontak
     async submitContactForm() {
       try {
-        // Format nomor telepon sebelum dikirim
+        // Validate form inputs
+        if (!this.validateContactForm()) {
+          this.showToast(
+            "Nama dan nomor telepon harus diisi dengan benar.",
+            "danger"
+          );
+          return;
+        }
+
+        // Format phone number
         this.contactForm.phoneNumber = this.formatPhoneNumber(
           this.contactForm.phoneNumber
         );
 
-        // Kirim permintaan untuk menambahkan kontak
-        const response = await fetch("http://202.70.133.37:3000/add-contact", {
-          method: "POST",
+        // Determine if this is an add or update operation
+        const isUpdate = Boolean(this.contactForm.id);
+        const url = `${API_BASE_URL}/${
+          isUpdate ? `update-contact/${this.contactForm.id}` : "add-contact"
+        }`;
+        const method = isUpdate ? "PUT" : "POST";
+
+        // Send the request
+        const response = await fetch(url, {
+          method,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${this.token}`,
           },
-          body: JSON.stringify(this.contactForm),
+          body: JSON.stringify({
+            name: this.contactForm.name,
+            phoneNumber: this.contactForm.phoneNumber,
+          }),
         });
 
-        // Periksa jika respons tidak berhasil
+        // Check if the response is successful
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Gagal menambahkan kontak");
+          let errorMessage = "Gagal menyimpan kontak.";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignore JSON parsing errors
+          }
+          throw new Error(errorMessage);
         }
 
-        // Ambil data dari respons
+        // Parse the response
         const result = await response.json();
 
-        // Tampilkan pesan sukses
-        this.showToast(result.message || "Kontak berhasil ditambahkan!");
+        // Show success message
+        this.showToast(
+          result.message ||
+            (isUpdate
+              ? "Kontak berhasil diperbarui!"
+              : "Kontak berhasil ditambahkan!"),
+          "success"
+        );
 
-        // Perbarui daftar kontak
-        this.fetchContacts();
-
-        // Reset form setelah berhasil
-        this.contactForm = { name: "", phoneNumber: "" };
+        // Refresh the contact list and reset the form
+        await this.fetchContacts();
+        this.resetContactForm();
       } catch (error) {
-        // Tangani error dan tampilkan pesan kepada pengguna
         console.error("Failed to submit contact form:", error);
         this.showToast(
-          error.message || "Terjadi kesalahan saat menambahkan kontak",
+          error.message || "Terjadi kesalahan saat menyimpan kontak.",
           "danger"
         );
       }
     },
 
-    // Hapus kontak
-    async handleDeleteContact(id) {
-      const result = await fetchData(
-        `http://202.70.133.37:3000/delete-contact/${id}`,
-        {
-          headers: { Authorization: `Bearer ${this.token}` },
-          method: "DELETE",
-        }
+    // Helper function to validate contact form inputs
+    validateContactForm() {
+      return (
+        this.contactForm.name &&
+        this.contactForm.name.trim().length > 0 &&
+        this.contactForm.phoneNumber &&
+        /^\d+$/.test(this.formatPhoneNumber(this.contactForm.phoneNumber)) // Ensure phone number is numeric
       );
-
-      // alert(result.message);
-      this.showToast("Kontak dihapus!", "danger");
-      this.fetchContacts();
     },
 
+    // Helper function to reset contact form to its default state
+    resetContactForm() {
+      this.contactForm = {
+        id: null, // Include id for update operations
+        name: "",
+        phoneNumber: "",
+      };
+    },
+
+    // Hapus kontak
+    async handleDeleteContact(id) {
+      try {
+        // Validate ID
+        if (!id) {
+          throw new Error("ID kontak tidak valid.");
+        }
+
+        // Show confirmation prompt before deleting
+        const confirmation = window.confirm(
+          "Apakah Anda yakin ingin menghapus kontak ini?"
+        );
+        if (!confirmation) return;
+
+        // Send DELETE request
+        const response = await fetch(`${API_BASE_URL}/delete-contact/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+        });
+
+        // Check if the response is successful
+        if (!response.ok) {
+          let errorMessage = "Gagal menghapus kontak.";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignore JSON parsing errors
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+
+        // Show success message and refresh contacts
+        this.showToast(result.message || "Kontak berhasil dihapus!", "success");
+        await this.fetchContacts();
+      } catch (error) {
+        console.error("Failed to delete contact:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan saat menghapus kontak.",
+          "danger"
+        );
+      }
+    },
     // Pilih kontak dari dropdown
     selectContact(contact) {
-      this.form.phoneNumber = contact.phoneNumber;
-      this.isContactDropdownOpen = false;
+      try {
+        // Validate the contact object and its phoneNumber property
+        if (!contact || !contact.phoneNumber) {
+          throw new Error("Kontak yang dipilih tidak valid.");
+        }
+
+        // Format the phone number
+        const formattedPhoneNumber = this.formatPhoneNumber(
+          contact.phoneNumber
+        );
+
+        // Update the form with the selected contact's phone number
+        this.form.phoneNumber = formattedPhoneNumber;
+
+        // Close the dropdown menu
+        this.isContactDropdownOpen = false;
+
+        console.log(`Contact selected: ${formattedPhoneNumber}`);
+      } catch (error) {
+        console.error("Error selecting contact:", error.message);
+        this.showToast("Gagal memilih kontak. Silakan coba lagi.", "danger");
+      }
     },
 
     // Template pesan
     applyTemplate(template) {
-      // Cari kontak berdasarkan nomor telepon yang dipilih
-      const selectedContact = this.contacts.find(
-        (contact) => contact.phoneNumber === this.form.phoneNumber
-      );
+      try {
+        // Validate template and form inputs
+        if (!template || !template.content) {
+          throw new Error("Template tidak valid.");
+        }
 
-      // Jika kontak ditemukan, ganti [Nama] dengan nama kontak
-      if (selectedContact) {
+        if (!this.form.phoneNumber) {
+          throw new Error("Pilih kontak terlebih dahulu dari dropdown.");
+        }
+
+        if (!this.form.paymentDate) {
+          throw new Error("Tanggal pembayaran tidak tersedia.");
+        }
+
+        // Find the selected contact
+        const selectedContact = this.contacts.find(
+          (contact) => contact.phoneNumber === this.form.phoneNumber
+        );
+
+        if (!selectedContact) {
+          throw new Error(
+            "Kontak tidak ditemukan. Pastikan nomor telepon benar."
+          );
+        }
+
+        // Replace placeholders in the template
         this.form.message = template.content
-          .replace("[Nama]", selectedContact.name)
-          .replace("[Jumlah]", "[Jumlah]") // Biarkan [Jumlah] sebagai placeholder
+          .replace("[Nama]", selectedContact.name || "[Nama]")
+          .replace("[Jumlah]", "[Jumlah]") // Leave [Jumlah] as a placeholder
           .replace("[Tanggal]", this.form.paymentDate)
           .replace(
             "[Bulan]",
@@ -473,94 +884,131 @@ function reminderApp() {
               month: "long",
             })
           );
-      } else {
-        // Jika kontak tidak ditemukan, beri peringatan
-        alert("Pilih kontak terlebih dahulu dari dropdown!");
-      }
-      this.isDropdownOpen = false;
-    },
 
+        // Close dropdown after applying the template
+        this.isDropdownOpen = false;
+
+        console.log("Template applied successfully:", this.form.message);
+      } catch (error) {
+        console.error("Error applying template:", error.message);
+        this.showToast(error.message, "danger");
+      }
+    },
     /* ------------------------ METHOD UNTUK REMINDER YANG SUDAH DIKIRIM ------------------------ */
 
     async fetchSentReminders() {
       try {
-        // Kirim permintaan ke server untuk mendapatkan pengingat terkirim
+        // Validate pagination inputs
+        if (
+          this.currentPageSentReminders <= 0 ||
+          this.limitSentReminders <= 0
+        ) {
+          throw new Error("Invalid pagination parameters.");
+        }
+
+        // Retrieve token from centralized state or localStorage
+        const token = this.token || localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Authorization token is missing. Please log in.");
+        }
+
+        // Send API request
         const response = await fetch(
-          `http://202.70.133.37:3000/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`,
+          `${API_BASE_URL}/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`,
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        // Periksa status HTTP dari respons
+        // Check response status
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.message || "Failed to fetch sent reminders"
-          );
+          let errorMessage = "Failed to fetch sent reminders.";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignore JSON parsing errors
+          }
+          throw new Error(errorMessage);
         }
 
-        // Parsing respons JSON
+        // Parse response JSON
         const data = await response.json();
 
-        // Perbarui data di state/frontend
-        this.sentReminders = data.sentReminders;
-        this.totalPagesSentReminders = data.totalPagesSentReminders;
+        // Update state with fetched data
+        this.sentReminders = Array.isArray(data.sentReminders)
+          ? data.sentReminders
+          : [];
+        this.totalPagesSentReminders = data.totalPagesSentReminders || 1;
+
+        console.log("Sent reminders fetched successfully:", this.sentReminders);
       } catch (error) {
-        // Tangani error dan tampilkan di konsol
         console.error("Failed to fetch sent reminders:", error);
         this.showToast(
           error.message ||
-            "Terjadi kesalahan saat mengambil pengingat terkirim",
+            "Terjadi kesalahan saat mengambil pengingat terkirim.",
           "danger"
         );
       }
     },
 
-    //
+    // res
     async rescheduleReminder(reminder) {
       try {
-        // Pastikan ID ada di objek reminder
-        if (!reminder.id) {
-          throw new Error("Reminder ID is missing");
+        // Validate the reminder object
+        if (!reminder || !reminder.id) {
+          throw new Error("Reminder data is invalid or missing.");
         }
 
+        // Retrieve token
+        const token = this.token || localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Authorization token is missing. Please log in.");
+        }
+
+        // Send API request
         const response = await fetch(
-          `http://202.70.133.37:3000/reschedule-reminder/${reminder.id}`,
+          `${API_BASE_URL}/reschedule-reminder/${reminder.id}`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        const data = await response.json();
+        // Parse response
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          throw new Error("Failed to parse server response.");
+        }
 
         if (response.ok) {
-          // Perbarui daftar pengingat dan pengingat terkirim
-          this.fetchReminders();
-          this.fetchSentReminders();
-          this.showToast(data.message || "Reminder successfully rescheduled!");
-        } else {
-          // Tampilkan pesan error dari server
+          // Refresh reminders data
+          await Promise.all([this.fetchReminders(), this.fetchSentReminders()]);
+
+          // Show success message
           this.showToast(
-            data.message || "Failed to reschedule reminder",
-            "danger"
+            data.message || "Reminder successfully rescheduled!",
+            "success"
           );
+        } else {
+          // Show server error message
+          throw new Error(data.message || "Failed to reschedule reminder.");
         }
       } catch (error) {
         console.error("Failed to reschedule reminder:", error);
         this.showToast(
-          error.message || "Failed to reschedule reminder",
+          error.message || "Failed to reschedule reminder.",
           "danger"
         );
       }
     },
-
     /* ------------------------ FITUR TAMBAHAN ------------------------ */
 
     // Pagination reminder
@@ -704,6 +1152,18 @@ function reminderApp() {
       }
 
       return pages;
+    },
+
+    // Toast Function
+    showToast(message, type = "success") {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      toast.classList.add("show");
+
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 3000);
     },
 
     // Toggle dropdown
