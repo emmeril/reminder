@@ -971,35 +971,16 @@ function reminderApp() {
 
     // Template pesan
     applyTemplate(template) {
-      try {
-        // Validate template and form inputs
-        if (!template || !template.content) {
-          throw new Error("Template tidak valid.");
-        }
+      // Cari kontak berdasarkan nomor telepon yang dipilih
+      const selectedContact = this.contacts.find(
+        (contact) => contact.phoneNumber === this.form.phoneNumber
+      );
 
-        if (!this.form.phoneNumber) {
-          throw new Error("Pilih kontak terlebih dahulu dari dropdown.");
-        }
-
-        if (!this.form.paymentDate) {
-          throw new Error("Tanggal pembayaran tidak tersedia.");
-        }
-
-        // Find the selected contact
-        const selectedContact = this.contacts.find(
-          (contact) => contact.phoneNumber === this.form.phoneNumber
-        );
-
-        if (!selectedContact) {
-          throw new Error(
-            "Kontak tidak ditemukan. Pastikan nomor telepon benar."
-          );
-        }
-
-        // Replace placeholders in the template
+      // Jika kontak ditemukan, ganti [Nama] dengan nama kontak
+      if (selectedContact) {
         this.form.message = template.content
-          .replace("[Nama]", selectedContact.name || "[Nama]")
-          .replace("[Jumlah]", "[Jumlah]") // Leave [Jumlah] as a placeholder
+          .replace("[Nama]", selectedContact.name)
+          .replace("[Jumlah]", "[Jumlah]") // Biarkan [Jumlah] sebagai placeholder
           .replace("[Tanggal]", this.form.paymentDate)
           .replace(
             "[Bulan]",
@@ -1007,15 +988,11 @@ function reminderApp() {
               month: "long",
             })
           );
-
-        // Close dropdown after applying the template
-        this.isDropdownOpen = false;
-
-        console.log("Template applied successfully:", this.form.message);
-      } catch (error) {
-        console.error("Error applying template:", error.message);
-        this.showToast(error.message, "danger");
+      } else {
+        // Jika kontak tidak ditemukan, beri peringatan
+        alert("Pilih kontak terlebih dahulu dari dropdown!");
       }
+      this.isDropdownOpen = false;
     },
 
     searchContacts() {
