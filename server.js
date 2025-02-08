@@ -550,7 +550,7 @@ app.post("/add-contact", authenticateToken, async (req, res) => {
 // Endpoint untuk mendapatkan daftar all kontak
 app.get("/get-all-contacts", authenticateToken, async (req, res) => {
   // Pastikan data kontak dimuat dari file JSON jika belum dimuat
-  if (contacts.size === 0 && fs.existsSync(contactsFilePath)) {
+  if (contacts.size === 0 && await fs.access(contactsFilePath).then(() => true).catch(() => false)) {
     await loadContactsFromFile(); // Muat data dari file JSON ke Map
   }
 
@@ -568,7 +568,7 @@ app.get("/get-contacts", authenticateToken, async (req, res) => {
   const limitNumber = parseInt(limit, 10);
 
   // Pastikan data kontak dimuat dari file JSON jika belum dimuat
-  if (contacts.size === 0 && fs.existsSync(contactsFilePath)) {
+  if (contacts.size === 0 && await fs.access(contactsFilePath).then(() => true).catch(() => false)) {
     await loadContactsFromFile(); // Muat data dari file JSON ke Map
   }
 
@@ -682,7 +682,7 @@ app.get("/get-reminders", authenticateToken, async (req, res) => {
   const limitNumber = parseInt(limit, 10);
 
   // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
-  if (reminders.size === 0 && fs.existsSync(remindersFilePath)) {
+  if (reminders.size === 0 && await fs.access(remindersFilePath).then(() => true).catch(() => false)) {
     await loadRemindersFromFile(); // Muat data dari file JSON ke Map
   }
 
@@ -702,7 +702,7 @@ app.get("/get-reminders", authenticateToken, async (req, res) => {
 // Endpoint untuk mendapatkan daftar all pengingat
 app.get("/get-all-reminders", authenticateToken, async (req, res) => {
   // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
-  if (reminders.size === 0 && fs.existsSync(remindersFilePath)) {
+  if (reminders.size === 0 && await fs.access(remindersFilePath).then(() => true).catch(() => false)) {
     await loadRemindersFromFile(); // Muat data dari file JSON ke Map
   }
 
@@ -788,7 +788,7 @@ app.get("/get-sent-reminders", authenticateToken, async (req, res) => {
   const limitNumber = parseInt(limit, 10);
 
   // Pastikan data pengingat terkirim dimuat dari file JSON jika belum dimuat
-  if (sentReminders.size === 0 && fs.existsSync(sentRemindersFilePath)) {
+  if (sentReminders.size === 0 && await fs.access(sentRemindersFilePath).then(() => true).catch(() => false)) {
     await loadSentRemindersFromFile(); // Muat data dari file JSON ke Map
   }
 
