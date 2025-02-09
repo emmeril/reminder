@@ -718,7 +718,10 @@ sortOrderSentReminders: "desc", // Default urutan terbaru ke lama
         const result = await response.json();
 
         // Update contacts data
-        this.contacts = Array.isArray(result.contacts) ? result.contacts : [];
+        // this.contacts = Array.isArray(result.contacts) ? result.contacts : [];
+        this.contacts = Array.isArray(result.contacts) 
+  ? result.contacts.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })) 
+  : [];
         this.totalPagesContacts = result.totalPagesContacts || 1;
 
         console.log("Contacts fetched successfully:", this.contacts);
