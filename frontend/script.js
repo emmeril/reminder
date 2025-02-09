@@ -1392,7 +1392,7 @@ toggleSortOrderAllContacts() {
 updatePaginatedReminders() {
   const start = (this.currentPage - 1) * this.limit;
   const end = start + this.limit;
-  this.allReminders = this.allReminders.slice(start, end);
+  this.reminders = this.allReminders.slice(start, end);
 },
     sortContacts() {
   this.allContacts.sort((a, b) => a.name.localeCompare(b.name, "id", { sensitivity: "base" }));
@@ -1401,7 +1401,7 @@ updatePaginatedReminders() {
 updatePaginatedContacts() {
   const start = (this.currentPageContacts - 1) * this.limitContacts;
   const end = start + this.limitContacts;
-  this.allContacts = this.allContacts.slice(start, end);
+  this.contacts = this.allContacts.slice(start, end);
 },
     
     // Logout
