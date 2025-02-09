@@ -167,20 +167,20 @@ function reminderApp() {
     allReminders: [],
     reminders: [],
     currentPage: 1,
-    limit: 1,
+    limit: 5,
     totalPages: 1,
 
     // Data kontak
     allContacts: [],
     contacts: [],
     currentPageContacts: 1,
-    limitContacts: 1,
+    limitContacts: 5,
     totalPagesContacts: 1,
 
     // Data kontak yang sudah dikirim
     sentReminders: [],
     currentPageSentReminders: 1,
-    limitSentReminders: 1,
+    limitSentReminders: 5,
     totalPagesSentReminders: 1,
 
     searchQueryReminders: "",
