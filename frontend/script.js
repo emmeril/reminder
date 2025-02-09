@@ -777,9 +777,18 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         //this.allContacts = Array.isArray(result.allContacts)
         //? result.allContacts
         //: [];
-        this.allContacts = Array.isArray(result.allContacts) 
-  ? result.allContacts.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })) 
-  : [];
+         // Simpan semua kontak ke dalam allContacts
+    this.allContacts = Array.isArray(result.allContacts) ? result.allContacts : [];
+
+    // Terapkan sorting berdasarkan nama
+    this.sortContacts();
+
+    // Hitung total halaman
+    this.totalPagesContacts = Math.ceil(this.allContacts.length / this.limitContacts);
+
+    // Ambil data berdasarkan halaman aktif
+    this.updatePaginatedContacts();
+
 
         console.log("All contacts fetched successfully:", this.allContacts);
       } catch (error) {
@@ -1229,14 +1238,16 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
     prevPageContacts() {
       if (this.currentPageContacts > 1) {
         this.currentPageContacts--;
-        this.fetchAllContacts();
+        //this.fetchAllContacts();
+         this.updatePaginatedContacts();
       }
     },
 
     nextPageContacts() {
       if (this.currentPageContacts < this.totalPagesContacts) {
         this.currentPageContacts++;
-        this.fetchAllContacts();
+        //this.fetchAllContacts();
+         this.updatePaginatedContacts();
       }
     },
 
@@ -1247,7 +1258,8 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         page !== this.currentPageContacts
       ) {
         this.currentPageContacts = page;
-        this.fetchAllContacts();
+        //this.fetchAllContacts();
+         this.updatePaginatedContacts();
       }
     },
 
@@ -1353,10 +1365,22 @@ toggleSortOrderSentReminders() {
   this.fetchSentReminders();
 },
 
+   // toggleSortOrderAllReminders() {
+  //this.sortOrderAllReminders = this.sortOrderAllReminders === "desc" ? "asc" : "desc";
+  //this.fetchAllReminders();
+//},
     toggleSortOrderAllReminders() {
   this.sortOrderAllReminders = this.sortOrderAllReminders === "desc" ? "asc" : "desc";
-  this.fetchAllReminders();
+  this.sortReminders();
+  this.updatePaginatedReminders();
 },
+
+toggleSortOrderAllContacts() {
+  this.sortContacts();
+  this.updatePaginatedContacts();
+},
+
+    
     sortReminders() {
   this.allReminders.sort((a, b) => {
     return this.sortOrderAllReminders === "desc"
@@ -1369,6 +1393,15 @@ updatePaginatedReminders() {
   const start = (this.currentPage - 1) * this.limit;
   const end = start + this.limit;
   this.reminders = this.allReminders.slice(start, end);
+},
+    sortContacts() {
+  this.allContacts.sort((a, b) => a.name.localeCompare(b.name, "id", { sensitivity: "base" }));
+},
+
+updatePaginatedContacts() {
+  const start = (this.currentPageContacts - 1) * this.limitContacts;
+  const end = start + this.limitContacts;
+  this.contacts = this.allContacts.slice(start, end);
 },
     
     // Logout
