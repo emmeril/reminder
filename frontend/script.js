@@ -182,9 +182,13 @@ function reminderApp() {
     currentPageSentReminders: 1,
     limitSentReminders: 5,
     totalPagesSentReminders: 1,
-
+// properti search
     searchQueryReminders: "",
     searchQueryContacts: "",
+
+  // properti urutan data
+    sortOrderReminders: "desc",  // Default urutan terbaru ke lama
+sortOrderSentReminders: "desc", // Default urutan terbaru ke lama
 
     // Template pesan
     messageTemplates: [
