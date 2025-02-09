@@ -656,6 +656,8 @@ app.post("/add-reminder", authenticateToken, async (req, res) => {
   // Create UTC date
   const reminderDateTime = new Date(Date.UTC(year, month - 1, day, hours, minutes));
 
+  console.log(`Parsed Date: ${reminderDateTime}`);
+
   // Ensure the date is correctly parsed
   if (isNaN(reminderDateTime.getTime())) {
     return res.status(400).json({ message: "Invalid date or time format" });
