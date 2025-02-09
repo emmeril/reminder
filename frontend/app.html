@@ -105,10 +105,14 @@
                             <input type="text" class="form-control" placeholder="Cari Reminders..." x-model="searchQueryReminders"
                                 @input="searchReminders" />
                         </div>
-                         <select class="form-select w-auto" @change="toggleSortOrderReminders">
+                          <select class="form-select w-auto mb-2" @change="toggleSortOrderAllReminders">
         <option value="desc">Terbaru ke Lama</option>
         <option value="asc">Lama ke Terbaru</option>
-                         </select>
+    </select>
+                        <!-- <select class="form-select w-auto" @change="toggleSortOrderReminders">
+        <option value="desc">Terbaru ke Lama</option>
+        <option value="asc">Lama ke Terbaru</option>
+                         </select>-->
                         <div id="reminderList">
                             <template x-for="reminder in reminders" :key="reminder.id">
                                 <div class="card mb-3">
@@ -245,7 +249,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Logs Sent Reminders</h5>
-                          <select class="form-select w-auto" @change="toggleSortOrderSentReminders">
+                          <select class="form-select w-auto my-2" @change="toggleSortOrderSentReminders">
         <option value="desc">Terbaru ke Lama</option>
         <option value="asc">Lama ke Terbaru</option>
     </select>
