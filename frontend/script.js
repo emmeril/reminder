@@ -519,6 +519,7 @@ function reminderApp() {
 
         // Refresh reminders list and reset form
         await this.fetchReminders();
+        await this.fetchAllReminders(); // Add this line
         this.resetForm();
       } catch (error) {
         console.error("Error saat menyimpan pengingat:", error);
