@@ -189,7 +189,7 @@ function reminderApp() {
   // properti urutan data
     sortOrderReminders: "desc",  // Default urutan terbaru ke lama
 sortOrderSentReminders: "desc", // Default urutan terbaru ke lama
-
+sortOrderAllReminders: "desc",  // Default: terbaru ke lama
     // Template pesan
     messageTemplates: [
       {
@@ -459,6 +459,13 @@ sortOrderSentReminders: "desc", // Default urutan terbaru ke lama
         this.allReminders = Array.isArray(result.allReminders)
           ? result.allReminders
           : [];
+
+           // Sorting berdasarkan tanggal schedule pengiriman
+    this.allReminders.sort((a, b) => {
+      return this.sortOrderAllReminders === "desc"
+        ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
+        : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
+    }); 
 
         console.log("All contacts fetched successfully:", this.allReminders);
       } catch (error) {
@@ -1341,6 +1348,11 @@ toggleSortOrderSentReminders() {
   this.fetchSentReminders();
 },
 
+    toggleSortOrderAllReminders() {
+  this.sortOrderAllReminders = this.sortOrderAllReminders === "desc" ? "asc" : "desc";
+  this.fetchAllReminders();
+},
+    
     // Logout
     logout() {
       localStorage.removeItem("token");
