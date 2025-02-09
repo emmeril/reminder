@@ -405,6 +405,11 @@ function reminderApp() {
         this.reminders = Array.isArray(result.reminders)
           ? result.reminders
           : [];
+        this.reminders.sort((a, b) => {
+      return this.sortOrderReminders === "desc" 
+        ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime) 
+        : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
+    });
         this.totalPages = result.totalPagesReminders || 1;
         console.log("Data pengingat berhasil diambil:", this.reminders);
       } catch (error) {
