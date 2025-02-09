@@ -405,11 +405,14 @@ function reminderApp() {
         this.reminders = Array.isArray(result.reminders)
           ? result.reminders
           : [];
+
+        // Sorting berdasarkan tanggal schedule
         this.reminders.sort((a, b) => {
       return this.sortOrderReminders === "desc" 
         ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime) 
         : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
     });
+        
         this.totalPages = result.totalPagesReminders || 1;
         console.log("Data pengingat berhasil diambil:", this.reminders);
       } catch (error) {
@@ -1077,6 +1080,14 @@ function reminderApp() {
         this.sentReminders = Array.isArray(data.sentReminders)
           ? data.sentReminders
           : [];
+
+        // Sorting berdasarkan tanggal schedule pengiriman
+    this.sentReminders.sort((a, b) => {
+      return this.sortOrderSentReminders === "desc" 
+        ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime) 
+        : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
+    });
+        
         this.totalPagesSentReminders = data.totalPagesSentReminders || 1;
 
         console.log("Sent reminders fetched successfully:", this.sentReminders);
