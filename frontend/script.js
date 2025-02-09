@@ -865,6 +865,7 @@ function reminderApp() {
 
         // Refresh the contact list and reset the form
         await this.fetchContacts();
+        await this.fetchAllContacts(); // Add this line
         this.resetContactForm();
       } catch (error) {
         console.error("Failed to submit contact form:", error);
