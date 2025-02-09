@@ -455,17 +455,19 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         // Parse response JSON
         const result = await response.json();
 
-        // Update contacts data with all contacts
-        this.allReminders = Array.isArray(result.allReminders)
-          ? result.allReminders
-          : [];
+         // Simpan semua reminders ke dalam allReminders
+    this.allReminders = Array.isArray(result.allReminders) ? result.allReminders : [];
 
-           // Sorting berdasarkan tanggal schedule pengiriman
-    this.allReminders.sort((a, b) => {
-      return this.sortOrderAllReminders === "desc"
-        ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
-        : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
-    }); 
+    // Terapkan sorting sesuai pilihan user
+    this.sortReminders();
+
+    // Hitung total halaman
+    this.totalPages = Math.ceil(this.allReminders.length / this.limit);
+
+    // Ambil data berdasarkan halaman aktif
+    this.updatePaginatedReminders();
+
+        
 
         console.log("All contacts fetched successfully:", this.allReminders);
       } catch (error) {
@@ -1179,21 +1181,24 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
     prevPage() {
       if (this.currentPage > 1) {
         this.currentPage--;
-        this.fetchReminders();
+        //this.fetchReminders();
+         this.updatePaginatedReminders();
       }
     },
 
     nextPage() {
       if (this.currentPage < this.totalPages) {
         this.currentPage++;
-        this.fetchReminders();
+        //this.fetchReminders();
+         this.updatePaginatedReminders();
       }
     },
 
     goToPage(page) {
       if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
         this.currentPage = page;
-        this.fetchReminders();
+        //this.fetchReminders();
+         this.updatePaginatedReminders();
       }
     },
 
@@ -1351,6 +1356,19 @@ toggleSortOrderSentReminders() {
     toggleSortOrderAllReminders() {
   this.sortOrderAllReminders = this.sortOrderAllReminders === "desc" ? "asc" : "desc";
   this.fetchAllReminders();
+},
+    sortReminders() {
+  this.allReminders.sort((a, b) => {
+    return this.sortOrderAllReminders === "desc"
+      ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
+      : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
+  });
+},
+
+updatePaginatedReminders() {
+  const start = (this.currentPage - 1) * this.limit;
+  const end = start + this.limit;
+  this.reminders = this.allReminders.slice(start, end);
 },
     
     // Logout
