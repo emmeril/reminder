@@ -644,14 +644,17 @@ app.post("/add-reminder", authenticateToken, async (req, res) => {
 
   // Ensure the date and time are correctly formatted
   const date = new Date(paymentDate);
-  const [year, month, day] = [
-    date.getFullYear(),
-    date.getMonth() + 1,
-    date.getDate(),
-  ];
-  const [hours, minutes] = reminderTime.split(":");
-  const reminderDateTime = new Date(year, month - 1, day, hours, minutes);
-  console.log(`Parsed Date: ${reminderDateTime}`);
+  if (isNaN(date.getTime())) {
+    return res.status(400).json({ message: "Invalid paymentDate" });
+  }
+
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1; // 1-12
+  const day = date.getUTCDate();
+  const [hours, minutes] = reminderTime.split(":").map(Number);
+
+  // Create UTC date
+  const reminderDateTime = new Date(Date.UTC(year, month - 1, day, hours, minutes));
 
   // Ensure the date is correctly parsed
   if (isNaN(reminderDateTime.getTime())) {
