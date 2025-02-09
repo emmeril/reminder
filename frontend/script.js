@@ -1321,6 +1321,16 @@ function reminderApp() {
       this.isContactDropdownOpen = !this.isContactDropdownOpen;
     },
 
+    toggleSortOrderReminders() {
+  this.sortOrderReminders = this.sortOrderReminders === "desc" ? "asc" : "desc";
+  this.fetchReminders();
+},
+
+toggleSortOrderSentReminders() {
+  this.sortOrderSentReminders = this.sortOrderSentReminders === "desc" ? "asc" : "desc";
+  this.fetchSentReminders();
+},
+
     // Logout
     logout() {
       localStorage.removeItem("token");
