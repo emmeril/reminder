@@ -1224,14 +1224,14 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
     prevPageContacts() {
       if (this.currentPageContacts > 1) {
         this.currentPageContacts--;
-        this.fetchContacts();
+        this.fetchAllContacts();
       }
     },
 
     nextPageContacts() {
       if (this.currentPageContacts < this.totalPagesContacts) {
         this.currentPageContacts++;
-        this.fetchContacts();
+        this.fetchAllContacts();
       }
     },
 
@@ -1242,7 +1242,7 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         page !== this.currentPageContacts
       ) {
         this.currentPageContacts = page;
-        this.fetchContacts();
+        this.fetchAllContacts();
       }
     },
 
