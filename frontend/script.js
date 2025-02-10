@@ -182,14 +182,10 @@ function reminderApp() {
     currentPageSentReminders: 1,
     limitSentReminders: 5,
     totalPagesSentReminders: 1,
-// properti search
+
     searchQueryReminders: "",
     searchQueryContacts: "",
 
-  // properti urutan data
-    sortOrderReminders: "desc",  // Default urutan terbaru ke lama
-sortOrderSentReminders: "desc", // Default urutan terbaru ke lama
-sortOrderAllReminders: "desc",  // Default: terbaru ke lama
     // Template pesan
     messageTemplates: [
       {
@@ -407,16 +403,12 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
 
         // Ensure response has valid data
         this.reminders = Array.isArray(result.reminders)
-          ? result.reminders
+          ? result.reminders.sort(
+              (a, b) =>
+                new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
+            )
           : [];
 
-        // Sorting berdasarkan tanggal schedule
-        this.reminders.sort((a, b) => {
-      return this.sortOrderReminders === "desc" 
-        ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime) 
-        : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
-    });
-        
         this.totalPages = result.totalPagesReminders || 1;
         console.log("Data pengingat berhasil diambil:", this.reminders);
       } catch (error) {
@@ -455,19 +447,13 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         // Parse response JSON
         const result = await response.json();
 
-         // Simpan semua reminders ke dalam allReminders
-    this.allReminders = Array.isArray(result.allReminders) ? result.allReminders : [];
-
-    // Terapkan sorting sesuai pilihan user
-    this.sortReminders();
-
-    // Hitung total halaman
-    this.totalPages = Math.ceil(this.allReminders.length / this.limit);
-
-    // Ambil data berdasarkan halaman aktif
-    this.updatePaginatedReminders();
-
-        
+        // Update contacts data with all contacts
+        this.allReminders = Array.isArray(result.allReminders)
+          ? result.allReminders.sort(
+              (a, b) =>
+                new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
+            )
+          : [];
 
         console.log("All contacts fetched successfully:", this.allReminders);
       } catch (error) {
@@ -727,10 +713,12 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         const result = await response.json();
 
         // Update contacts data
-        // this.contacts = Array.isArray(result.contacts) ? result.contacts : [];
-        this.contacts = Array.isArray(result.contacts) 
-  ? result.contacts.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })) 
-  : [];
+        this.contacts = Array.isArray(result.contacts)
+          ? result.contacts.sort((a, b) =>
+              a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+            )
+          : [];
+
         this.totalPagesContacts = result.totalPagesContacts || 1;
 
         console.log("Contacts fetched successfully:", this.contacts);
@@ -774,21 +762,11 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         const result = await response.json();
 
         // Update contacts data with all contacts
-        //this.allContacts = Array.isArray(result.allContacts)
-        //? result.allContacts
-        //: [];
-         // Simpan semua kontak ke dalam allContacts
-    this.allContacts = Array.isArray(result.allContacts) ? result.allContacts : [];
-
-    // Terapkan sorting berdasarkan nama
-    this.sortContacts();
-
-    // Hitung total halaman
-    this.totalPagesContacts = Math.ceil(this.allContacts.length / this.limitContacts);
-
-    // Ambil data berdasarkan halaman aktif
-    this.updatePaginatedContacts();
-
+        this.allContacts = Array.isArray(result.allContacts)
+          ? result.allContacts.sort((a, b) =>
+              a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+            )
+          : [];
 
         console.log("All contacts fetched successfully:", this.allContacts);
       } catch (error) {
@@ -1106,16 +1084,12 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
 
         // Update state with fetched data
         this.sentReminders = Array.isArray(data.sentReminders)
-          ? data.sentReminders
+          ? data.sentReminders.sort(
+              (a, b) =>
+                new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
+            )
           : [];
 
-        // Sorting berdasarkan tanggal schedule pengiriman
-    this.sentReminders.sort((a, b) => {
-      return this.sortOrderSentReminders === "desc" 
-        ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime) 
-        : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
-    });
-        
         this.totalPagesSentReminders = data.totalPagesSentReminders || 1;
 
         console.log("Sent reminders fetched successfully:", this.sentReminders);
@@ -1190,24 +1164,21 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
     prevPage() {
       if (this.currentPage > 1) {
         this.currentPage--;
-        //this.fetchReminders();
-         this.updatePaginatedReminders();
+        this.fetchReminders();
       }
     },
 
     nextPage() {
       if (this.currentPage < this.totalPages) {
         this.currentPage++;
-        //this.fetchReminders();
-         this.updatePaginatedReminders();
+        this.fetchReminders();
       }
     },
 
     goToPage(page) {
       if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
         this.currentPage = page;
-        //this.fetchReminders();
-         this.updatePaginatedReminders();
+        this.fetchReminders();
       }
     },
 
@@ -1238,16 +1209,14 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
     prevPageContacts() {
       if (this.currentPageContacts > 1) {
         this.currentPageContacts--;
-        //this.fetchAllContacts();
-         this.updatePaginatedContacts();
+        this.fetchContacts();
       }
     },
 
     nextPageContacts() {
       if (this.currentPageContacts < this.totalPagesContacts) {
         this.currentPageContacts++;
-        //this.fetchAllContacts();
-         this.updatePaginatedContacts();
+        this.fetchContacts();
       }
     },
 
@@ -1258,8 +1227,7 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
         page !== this.currentPageContacts
       ) {
         this.currentPageContacts = page;
-        //this.fetchAllContacts();
-         this.updatePaginatedContacts();
+        this.fetchContacts();
       }
     },
 
@@ -1355,55 +1323,6 @@ sortOrderAllReminders: "desc",  // Default: terbaru ke lama
       this.isContactDropdownOpen = !this.isContactDropdownOpen;
     },
 
-    toggleSortOrderReminders() {
-  this.sortOrderReminders = this.sortOrderReminders === "desc" ? "asc" : "desc";
-  this.fetchReminders();
-},
-
-toggleSortOrderSentReminders() {
-  this.sortOrderSentReminders = this.sortOrderSentReminders === "desc" ? "asc" : "desc";
-  this.fetchSentReminders();
-},
-
-   // toggleSortOrderAllReminders() {
-  //this.sortOrderAllReminders = this.sortOrderAllReminders === "desc" ? "asc" : "desc";
-  //this.fetchAllReminders();
-//},
-    toggleSortOrderAllReminders() {
-  this.sortOrderAllReminders = this.sortOrderAllReminders === "desc" ? "asc" : "desc";
-  this.sortReminders();
-  this.updatePaginatedReminders();
-},
-
-toggleSortOrderAllContacts() {
-  this.sortContacts();
-  this.updatePaginatedContacts();
-},
-
-    
-    sortReminders() {
-  this.allReminders.sort((a, b) => {
-    return this.sortOrderAllReminders === "desc"
-      ? new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
-      : new Date(a.reminderDateTime) - new Date(b.reminderDateTime);
-  });
-},
-
-updatePaginatedReminders() {
-  const start = (this.currentPage - 1) * this.limit;
-  const end = start + this.limit;
-  this.reminders = this.allReminders.slice(start, end);
-},
-    sortContacts() {
-  this.allContacts.sort((a, b) => a.name.localeCompare(b.name, "id", { sensitivity: "base" }));
-},
-
-updatePaginatedContacts() {
-  const start = (this.currentPageContacts - 1) * this.limitContacts;
-  const end = start + this.limitContacts;
-  this.contacts = this.allContacts.slice(start, end);
-},
-    
     // Logout
     logout() {
       localStorage.removeItem("token");
