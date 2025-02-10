@@ -442,7 +442,7 @@ const sendWhatsAppMessage = async (phoneNumber, message) => {
 };
 
 // Fungsi untuk menjalankan cron job
-cron.schedule("* * * * *", async () => {
+cron.schedule("*/5 * * * *", async () => {
   const now = Date.now();
   console.log(`Menjalankan cron job pada: ${new Date(now).toISOString()}`);
 
