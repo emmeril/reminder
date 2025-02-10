@@ -253,14 +253,14 @@ function reminderApp() {
             );
           });
 
-        // Auto-refresh reminders every 5 minutes
+        // Auto-refresh every 5 minutes
         this.startAutoRefresh(300000); // 5 minutes in milliseconds
       } catch (error) {
         console.error("Unexpected error during initialization:", error);
       }
     },
 
-    // Start auto-refresh for reminders
+    // Start auto-refresh 
     startAutoRefresh(interval) {
       if (this.autoRefreshInterval) {
         clearInterval(this.autoRefreshInterval);
@@ -268,10 +268,14 @@ function reminderApp() {
 
       this.autoRefreshInterval = setInterval(async () => {
         try {
-          console.log("Auto-refreshing reminders...");
-          await this.fetchReminders();
+          console.log("Auto-refreshing...");
+          await this.fetchContacts(); // Fetch paginated contacts
+          await this.fetchReminders(); // Fetch paginated reminders
+          await this.fetchSentReminders(); // Fetch sent reminders
+          await this.fetchAllContacts(); // Fetch all contacts
+          await this.fetchAllReminders(); // Fetch all reminders
         } catch (error) {
-          console.error("Error during auto-refresh of reminders:", error);
+          console.error("Error during auto-refresh:", error);
         }
       }, interval);
     },
