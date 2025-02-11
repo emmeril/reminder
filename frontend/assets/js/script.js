@@ -1,9 +1,81 @@
 // Define a base API URL
 const API_BASE_URL = "http://202.70.133.37:3000";
 // Define a configurable login page URL
-const LOGIN_PAGE_URL = "/";
+const LOGIN_PAGE_URL = "index.html";
 // List of protected pages
-const PROTECTED_PAGES = ["/dashboard/index.html"];
+const PROTECTED_PAGES = ["app.html"];
+
+// Authentication Logic
+function auth() {
+  return {
+    form: { username: "", password: "" },
+
+    async submit() {
+      // Client-side validation
+      if (!this.form.username || this.form.username.trim().length < 3) {
+        this.showToast(
+          "Username harus diisi dan minimal 3 karakter.",
+          "danger"
+        );
+        return;
+      }
+      if (!this.form.password || this.form.password.trim().length < 6) {
+        this.showToast(
+          "Password harus diisi dan minimal 6 karakter.",
+          "danger"
+        );
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(this.form),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Gagal login.");
+
+        // Store token and username in localStorage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", this.form.username);
+
+        // Redirect to app page
+        window.location.href = "app.html";
+      } catch (error) {
+        console.error("Login error:", error);
+        this.showToast(
+          error.message || "Terjadi kesalahan, coba lagi.",
+          "danger"
+        );
+      }
+    },
+
+    // Display a toast message
+    showToast(message, type = "success") {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.textContent = message;
+        toast.className = `toast ${type}`;
+        toast.classList.add("show");
+
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 3000);
+      }
+    },
+  };
+}
+
+async function fetchData(url, options = {}) {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message);
+  }
+  return response.json();
+}
 
 // Function to check if user is authenticated
 function checkAuthentication() {
@@ -131,6 +203,16 @@ function reminderApp() {
         content:
           "Hai [Nama], jangan lupa bayar tagihan Emmeril Hotspot untuk bulan [Bulan], [Tanggal] sebesar Rp 40.000, pembayaran bisa melalui transfer ke BCA 134-266-9497 a/n Hafriyanto. konfirmasi pembayaran ke nomor ini ya. Terima kasih.",
       },
+      // {
+      //   name: "Pembayaran Cicilan",
+      //   content:
+      //     "Pengingat pembayaran cicilan ke-[Angka] sebesar Rp [Jumlah] jatuh tempo [Tanggal].",
+      // },
+      // {
+      //   name: "Tagihan Air",
+      //   content:
+      //     "Pengingat pembayaran tagihan air bulan [Bulan] sebesar Rp [Jumlah].",
+      // },
     ],
 
     // State dropdown
@@ -178,7 +260,7 @@ function reminderApp() {
       }
     },
 
-    // Start auto-refresh
+    // Start auto-refresh 
     startAutoRefresh(interval) {
       if (this.autoRefreshInterval) {
         clearInterval(this.autoRefreshInterval);
