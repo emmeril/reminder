@@ -474,7 +474,7 @@ const rescheduleReminderToNextMonth = (reminder) => {
 };
 
 // Fungsi untuk menjalankan cron job
-cron.schedule("*/5 * * * *", async () => {
+cron.schedule("* * * * *", async () => {
   const now = Date.now();
   console.log(`Menjalankan cron job pada: ${new Date(now).toISOString()}`);
 
@@ -497,12 +497,13 @@ cron.schedule("*/5 * * * *", async () => {
         // Log success and move reminder to sent reminders
         console.log(`Pesan berhasil dikirim ke ${reminder.phoneNumber}`);
         sentReminders.set(id, reminder);
+        await saveSentRemindersToFile(sentReminders);
         reminders.delete(id);
-
+        await saveRemindersToFile(reminders);
         // Reschedule reminder to next month
-        const rescheduledReminder = rescheduleReminderToNextMonth(reminder);
-        await new Promise((resolve) => setTimeout(resolve, 30000)); // Delay 30 seconds
-        reminders.set(id, rescheduledReminder);
+        const autoRescheduled = rescheduleReminderToNextMonth(reminder);
+        reminders.set(id, autoRescheduled);
+        await saveRemindersToFile(reminders);
       }
     } catch (error) {
       console.error(
