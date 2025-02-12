@@ -448,11 +448,12 @@ const rescheduleReminderToNextMonth = (reminder) => {
     currentReminderDate.setMonth(currentReminderDate.getMonth() + 1)
   );
   // Format tanggal ke yyyy-mm-dd
-  const formattedDate = `${nextMonthDate.getFullYear()}-${(nextMonthDate.getMonth() + 1)
+  const formattedDate = `${nextMonthDate.getFullYear()}-${(
+    nextMonthDate.getMonth() + 1
+  )
     .toString()
     .padStart(2, "0")}-${nextMonthDate.getDate().toString().padStart(2, "0")}`;
 
-  
   let oldMessage = reminder.message;
 
   // Ganti bulan dan tanggal
@@ -500,7 +501,8 @@ cron.schedule("*/5 * * * *", async () => {
 
         // Reschedule reminder to next month
         const rescheduledReminder = rescheduleReminderToNextMonth(reminder);
-        reminders.set(rescheduledReminder.id, rescheduledReminder);
+        await new Promise((resolve) => setTimeout(resolve, 30000)); // Delay 30 seconds
+        reminders.set(id, rescheduledReminder);
       }
     } catch (error) {
       console.error(
