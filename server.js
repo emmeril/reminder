@@ -441,6 +441,30 @@ const sendWhatsAppMessage = async (phoneNumber, message) => {
   }
 };
 
+// Fungsi untuk menjadwalkan ulang pengingat ke bulan berikutnya
+const rescheduleReminderToNextMonth = (reminder) => {
+  const currentReminderDate = new Date(reminder.reminderDateTime);
+  const nextMonthDate = new Date(
+    currentReminderDate.setMonth(currentReminderDate.getMonth() + 1)
+  );
+  let oldMessage = reminder.message;
+
+  // Ganti bulan dan tanggal
+  const updatedMessage = oldMessage
+    .replace(
+      /bulan \w+/,
+      `bulan ${nextMonthDate.toLocaleString("id-ID", { month: "long" })}`
+    ) // Ganti bulan
+    .replace(/\d{4}-\d{2}-\d{2}/, `${nextMonthDate.getDate()}`); // Ganti tanggal
+
+  // Update reminder date and message
+  reminder.phoneNumber;
+  reminder.reminderDateTime = nextMonthDate;
+  reminder.message = updatedMessage;
+
+  return reminder;
+};
+
 // Fungsi untuk menjalankan cron job
 cron.schedule("*/5 * * * *", async () => {
   const now = Date.now();
@@ -466,6 +490,10 @@ cron.schedule("*/5 * * * *", async () => {
         console.log(`Pesan berhasil dikirim ke ${reminder.phoneNumber}`);
         sentReminders.set(id, reminder);
         reminders.delete(id);
+
+        // Reschedule reminder to next month
+        const rescheduledReminder = rescheduleReminderToNextMonth(reminder);
+        reminders.set(id, rescheduledReminder);
       }
     } catch (error) {
       console.error(
