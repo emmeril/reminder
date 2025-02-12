@@ -495,15 +495,13 @@ cron.schedule("* * * * *", async () => {
 
         // Log success and move reminder to sent reminders
         console.log(`Pesan berhasil dikirim ke ${reminder.phoneNumber}`);
-        sentReminders.set(id, reminder);
+        sentReminders.set(id, { ...reminder }); // Clone reminder to avoid reference issues
         reminders.delete(id);
        
         // Reschedule reminder to next month
-        const autoRescheduled = rescheduleReminderToNextMonth(reminder);
-        await new Promise((resolve) => setTimeout(resolve, 30000));
-        reminders.set(id, autoRescheduled);
-        await saveRemindersToFile(reminders);
-        await saveSentRemindersToFile(sentReminders);
+        const autoRescheduled = rescheduleReminderToNextMonth({ ...reminder }); // Clone reminder to avoid reference issues
+        // await new Promise((resolve) => setTimeout(resolve, 30000));
+        reminders.set(autoRescheduled.id, autoRescheduled);
       }
     } catch (error) {
       console.error(
