@@ -447,6 +447,12 @@ const rescheduleReminderToNextMonth = (reminder) => {
   const nextMonthDate = new Date(
     currentReminderDate.setMonth(currentReminderDate.getMonth() + 1)
   );
+  // Format tanggal ke yyyy-mm-dd
+  const formattedDate = `${nextMonthDate.getFullYear()}-${(nextMonthDate.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}-${nextMonthDate.getDate().toString().padStart(2, "0")}`;
+
+  
   let oldMessage = reminder.message;
 
   // Ganti bulan dan tanggal
@@ -455,9 +461,10 @@ const rescheduleReminderToNextMonth = (reminder) => {
       /bulan \w+/,
       `bulan ${nextMonthDate.toLocaleString("id-ID", { month: "long" })}`
     ) // Ganti bulan
-    .replace(/\d{4}-\d{2}-\d{2}/, `${nextMonthDate.getDate()}`); // Ganti tanggal
+    .replace(/\d{4}-\d{2}-\d{2}/, formattedDate); // Ganti tanggal
 
   // Update reminder date and message
+  reminder.id = nextMonthDate;
   reminder.phoneNumber;
   reminder.reminderDateTime = nextMonthDate;
   reminder.message = updatedMessage;
@@ -493,7 +500,7 @@ cron.schedule("*/5 * * * *", async () => {
 
         // Reschedule reminder to next month
         const rescheduledReminder = rescheduleReminderToNextMonth(reminder);
-        reminders.set(id, rescheduledReminder);
+        reminders.set(rescheduledReminder);
       }
     } catch (error) {
       console.error(
