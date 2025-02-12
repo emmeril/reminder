@@ -500,7 +500,7 @@ cron.schedule("*/5 * * * *", async () => {
 
         // Reschedule reminder to next month
         const rescheduledReminder = rescheduleReminderToNextMonth(reminder);
-        reminders.set(rescheduledReminder);
+        reminders.set(rescheduledReminder.id, rescheduledReminder);
       }
     } catch (error) {
       console.error(
