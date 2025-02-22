@@ -3,3 +3,4 @@ node_modules
 .wwebjs_cache
 pnpm-lock.yaml
 .env
+.database
