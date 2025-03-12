@@ -17,7 +17,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://202.70.133.37", "http://emmeril-reminder.ddnsx.my.id"],
+    origin: ["http://202.70.133.37", "http://reminder.emmeril-hotspot.shop"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     maxAge: 600,
