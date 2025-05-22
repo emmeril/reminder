@@ -288,50 +288,32 @@ const rescheduleReminderToNextMonth = (reminder) => {
 // Fungsi untuk menjalankan cron job
 cron.schedule("*/1 * * * *", async () => {
   const now = Date.now();
-  console.log(`Menjalankan cron job pada: ${new Date(now).toISOString()}`);
+  console.log(`Cron berjalan: ${new Date(now).toISOString()}`);
 
-  // Check if there are any reminders to process
-  if (reminders.size === 0) {
-    console.log("Tidak ada pengingat untuk diproses.");
-    return;
-  }
+  const dueReminders = Array.from(reminders.entries()).filter(
+    ([, r]) => now >= new Date(r.reminderDateTime).getTime()
+  );
 
-  // Iterate over reminders
-  for (const [id, reminder] of reminders) {
-    try {
-      // Check if the reminder time has passed
-      if (now >= new Date(reminder.reminderDateTime).getTime()) {
+  if (dueReminders.length === 0) return;
+
+  await Promise.allSettled(
+    dueReminders.map(async ([id, reminder]) => {
+      try {
         const message = `Pengingat pembayaran: ${reminder.message}`;
-
-        // Await WhatsApp message sending
         await sendWhatsAppMessage(reminder.phoneNumber, message);
-
-        // Log success and move reminder to sent reminders
-        console.log(`Pesan berhasil dikirim ke ${reminder.phoneNumber}`);
-        sentReminders.set(id, { ...reminder }); // Clone reminder to avoid reference issues
+        sentReminders.set(id, reminder);
         reminders.delete(id);
 
-        // Reschedule reminder to next month
-        const autoRescheduled = rescheduleReminderToNextMonth({ ...reminder }); // Clone reminder to avoid reference issues
-        // await new Promise((resolve) => setTimeout(resolve, 30000));
-        reminders.set(autoRescheduled.id, autoRescheduled);
+        const rescheduled = rescheduleReminderToNextMonth({ ...reminder });
+        reminders.set(rescheduled.id, rescheduled);
+      } catch (err) {
+        console.error(`Gagal kirim pengingat ID ${id}: ${err.message}`);
       }
-    } catch (error) {
-      console.error(
-        `Gagal mengirim pesan untuk pengingat ID ${id} ke ${reminder.phoneNumber}:`,
-        error.message
-      );
-    }
-  }
+    })
+  );
 
-  // Save reminders and sent reminders to file
-  try {
-    await saveRemindersToFile(reminders);
-    await saveSentRemindersToFile(sentReminders);
-    console.log("Data pengingat berhasil diperbarui.");
-  } catch (error) {
-    console.error("Gagal menyimpan data pengingat:", error.message);
-  }
+  await saveMapToFile(reminders, remindersFilePath);
+  await saveMapToFile(sentReminders, sentRemindersFilePath);
 });
 
 /**
