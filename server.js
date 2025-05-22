@@ -605,34 +605,34 @@ app.get("/get-all-contacts", authenticateToken, async (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar kontak dengan pagination
-app.get("/get-contacts", authenticateToken, async (req, res) => {
-  const { page = 1, limit = 5 } = req.query;
-  const pageNumber = parseInt(page, 10);
-  const limitNumber = parseInt(limit, 10);
+// app.get("/get-contacts", authenticateToken, async (req, res) => {
+//   const { page = 1, limit = 5 } = req.query;
+//   const pageNumber = parseInt(page, 10);
+//   const limitNumber = parseInt(limit, 10);
 
-  // Pastikan data kontak dimuat dari file JSON jika belum dimuat
-  if (
-    contacts.size === 0 &&
-    (await fs
-      .access(contactsFilePath)
-      .then(() => true)
-      .catch(() => false))
-  ) {
-    await loadContactsFromFile(); // Muat data dari file JSON ke Map
-  }
+//   // Pastikan data kontak dimuat dari file JSON jika belum dimuat
+//   if (
+//     contacts.size === 0 &&
+//     (await fs
+//       .access(contactsFilePath)
+//       .then(() => true)
+//       .catch(() => false))
+//   ) {
+//     await loadContactsFromFile(); // Muat data dari file JSON ke Map
+//   }
 
-  const contactList = Array.from(contacts.values());
-  const paginatedContacts = contactList.slice(
-    (pageNumber - 1) * limitNumber,
-    pageNumber * limitNumber
-  );
+//   const contactList = Array.from(contacts.values());
+//   const paginatedContacts = contactList.slice(
+//     (pageNumber - 1) * limitNumber,
+//     pageNumber * limitNumber
+//   );
 
-  res.json({
-    page: pageNumber,
-    totalPagesContacts: Math.ceil(contactList.length / limitNumber),
-    contacts: paginatedContacts,
-  });
-});
+//   res.json({
+//     page: pageNumber,
+//     totalPagesContacts: Math.ceil(contactList.length / limitNumber),
+//     contacts: paginatedContacts,
+//   });
+// });
 
 // endpoint untuk memperbarui kontak berdasarkan ID
 app.put("/update-contact/:id", authenticateToken, async (req, res) => {
@@ -725,34 +725,34 @@ app.post("/add-reminder", authenticateToken, async (req, res) => {
 });
 
 // Endpoint untuk mendapatkan daftar pengingat dengan pagination
-app.get("/get-reminders", authenticateToken, async (req, res) => {
-  const { page = 1, limit = 5 } = req.query;
-  const pageNumber = parseInt(page, 10);
-  const limitNumber = parseInt(limit, 10);
+// app.get("/get-reminders", authenticateToken, async (req, res) => {
+//   const { page = 1, limit = 5 } = req.query;
+//   const pageNumber = parseInt(page, 10);
+//   const limitNumber = parseInt(limit, 10);
 
-  // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
-  if (
-    reminders.size === 0 &&
-    (await fs
-      .access(remindersFilePath)
-      .then(() => true)
-      .catch(() => false))
-  ) {
-    await loadRemindersFromFile(); // Muat data dari file JSON ke Map
-  }
+//   // Pastikan data pengingat dimuat dari file JSON jika belum dimuat
+//   if (
+//     reminders.size === 0 &&
+//     (await fs
+//       .access(remindersFilePath)
+//       .then(() => true)
+//       .catch(() => false))
+//   ) {
+//     await loadRemindersFromFile(); // Muat data dari file JSON ke Map
+//   }
 
-  const reminderList = Array.from(reminders.values());
-  const paginatedReminders = reminderList.slice(
-    (pageNumber - 1) * limitNumber,
-    pageNumber * limitNumber
-  );
+//   const reminderList = Array.from(reminders.values());
+//   const paginatedReminders = reminderList.slice(
+//     (pageNumber - 1) * limitNumber,
+//     pageNumber * limitNumber
+//   );
 
-  res.json({
-    page: pageNumber,
-    totalPagesReminders: Math.ceil(reminderList.length / limitNumber),
-    reminders: paginatedReminders,
-  });
-});
+//   res.json({
+//     page: pageNumber,
+//     totalPagesReminders: Math.ceil(reminderList.length / limitNumber),
+//     reminders: paginatedReminders,
+//   });
+// });
 
 // Endpoint untuk mendapatkan daftar all pengingat
 app.get("/get-all-reminders", authenticateToken, async (req, res) => {
@@ -844,10 +844,6 @@ app.delete("/delete-reminder/:id", authenticateToken, async (req, res) => {
 
 // Endpoint untuk mendapatkan daftar pengingat terkirim dengan pagination
 app.get("/get-sent-reminders", authenticateToken, async (req, res) => {
-  const { page = 1, limit = 5 } = req.query;
-  const pageNumber = parseInt(page, 10);
-  const limitNumber = parseInt(limit, 10);
-
   // Pastikan data pengingat terkirim dimuat dari file JSON jika belum dimuat
   if (
     sentReminders.size === 0 &&
@@ -860,17 +856,12 @@ app.get("/get-sent-reminders", authenticateToken, async (req, res) => {
   }
 
   const sentReminderList = Array.from(sentReminders.values());
-  const paginatedSentReminders = sentReminderList.slice(
-    (pageNumber - 1) * limitNumber,
-    pageNumber * limitNumber
-  );
 
   res.json({
-    page: pageNumber,
-    totalPagesSentReminders: Math.ceil(sentReminderList.length / limitNumber),
-    sentReminders: paginatedSentReminders,
+    sentReminders: sentReminderList,
   });
 });
+
 
 // Endpoint untuk menjadwalkan ulang pengingat terkirim
 app.post("/reschedule-reminder/:id", authenticateToken, async (req, res) => {
