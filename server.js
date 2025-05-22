@@ -109,11 +109,11 @@ const sentRemindersFilePath = path.join(
     sentRemindersFilePath,
     (s) => s.id && s.phoneNumber && s.reminderDateTime && s.message
   );
-})();
 
-await saveMapToFile(contacts, contactsFilePath);
-await saveMapToFile(reminders, remindersFilePath);
-await saveMapToFile(sentReminders, sentRemindersFilePath);
+  await saveMapToFile(contacts, contactsFilePath);
+  await saveMapToFile(reminders, remindersFilePath);
+  await saveMapToFile(sentReminders, sentRemindersFilePath);
+})();
 
 // Middleware
 const authenticateToken = (req, res, next) => {
