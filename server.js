@@ -52,159 +52,42 @@ const speedLimiter = slowDown({
 });
 app.use(speedLimiter);
 
+// Fungsi untuk menyimpan ke file JSON
+const saveMapToFile = async (map, filePath) => {
+  try {
+    const dirPath = path.dirname(filePath);
+    await fs.mkdir(dirPath, { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify([...map.values()], null, 2));
+    console.log(`Data berhasil disimpan di ${filePath}`);
+  } catch (error) {
+    console.error(`Gagal menyimpan data ke file ${filePath}: ${error.message}`);
+  }
+};
+
+// fungsi untuk meload data dari file JSON
+const loadMapFromFile = async (filePath, validateFn) => {
+  const map = new Map();
+  try {
+    await fs.access(filePath);
+    const data = await fs.readFile(filePath, "utf-8");
+    if (!data.trim()) return map;
+    const parsed = JSON.parse(data);
+    parsed.forEach((item) => {
+      if (validateFn(item)) map.set(item.id, item);
+      else console.warn(`Data tidak valid: ${JSON.stringify(item)}`);
+    });
+    console.log(`Data berhasil dimuat dari ${filePath}`);
+  } catch (error) {
+    console.error(`Gagal memuat data dari file ${filePath}: ${error.message}`);
+  }
+  return map;
+};
+
 // simpan file kontak di database/contacts.json
 const contactsFilePath = path.join(__dirname, "database", "contacts.json");
 
-// Fungsi untuk menyimpan data ke file JSON
-const saveContactsToFile = async (contacts) => {
-  try {
-    // Pastikan direktori tempat file berada sudah ada
-    const dirPath = path.dirname(contactsFilePath);
-    await fs.mkdir(dirPath, { recursive: true }); // Membuat direktori jika belum ada
-
-    // Simpan data ke file JSON
-    await fs.writeFile(
-      contactsFilePath,
-      JSON.stringify([...contacts.values()], null, 2)
-    );
-
-    console.log(`Kontak berhasil disimpan di ${contactsFilePath}`);
-  } catch (error) {
-    console.error(`Gagal menyimpan kontak ke file: ${error.message}`);
-  }
-};
-
-// Fungsi untuk memuat data dari file JSON (jika file ada)
-const loadContactsFromFile = async () => {
-  try {
-    // Periksa apakah file ada
-    const fileExists = await fs
-      .access(contactsFilePath)
-      .then(() => true)
-      .catch(() => false);
-
-    if (!fileExists) {
-      console.log(`File kontak tidak ditemukan di path: ${contactsFilePath}`);
-      return; // Jika file tidak ada, keluar dari fungsi
-    }
-
-    // Baca file secara asinkron
-    const data = await fs.readFile(contactsFilePath, "utf-8");
-
-    if (!data.trim()) {
-      console.log("File kontak kosong, tidak ada data untuk dimuat.");
-      return; // Jika file kosong, keluar dari fungsi
-    }
-
-    // Parse data JSON
-    const parsedContacts = JSON.parse(data);
-
-    // Validasi dan tambahkan ke Map contacts
-    parsedContacts.forEach((contact) => {
-      if (contact.id && contact.name && contact.phoneNumber) {
-        contacts.set(contact.id, contact);
-      } else {
-        console.warn(
-          `Kontak tidak valid ditemukan: ${JSON.stringify(contact)}`
-        );
-      }
-    });
-
-    console.log("Kontak berhasil dimuat dari file.");
-  } catch (error) {
-    console.error(`Gagal memuat kontak dari file: ${error.message}`);
-  }
-};
-
-// Muat data kontak saat aplikasi dijalankan
-loadContactsFromFile()
-  .then(() => {
-    console.log("Kontak berhasil dimuat ke dalam Map.");
-  })
-  .catch((error) => {
-    console.error("Gagal memuat kontak:", error.message);
-  });
-
 // simpan file pengingat di database/reminders.json
 const remindersFilePath = path.join(__dirname, "database", "reminders.json");
-
-// Fungsi untuk menyimpan data ke file JSON
-const saveRemindersToFile = async (reminders) => {
-  try {
-    // Pastikan direktori tempat file berada sudah ada
-    const dirPath = path.dirname(remindersFilePath);
-    await fs.mkdir(dirPath, { recursive: true }); // Membuat direktori jika belum ada
-
-    // Simpan data ke file JSON
-    const remindersArray = [...reminders.values()]; // Konversi Map ke Array
-    await fs.writeFile(
-      remindersFilePath,
-      JSON.stringify(remindersArray, null, 2) // Format JSON dengan indentasi
-    );
-
-    console.log(`Pengingat berhasil disimpan di ${remindersFilePath}`);
-  } catch (error) {
-    console.error(`Gagal menyimpan pengingat ke file: ${error.message}`);
-  }
-};
-
-// Fungsi untuk memuat data dari file JSON (jika file ada)
-const loadRemindersFromFile = async () => {
-  try {
-    // Periksa apakah file ada
-    const fileExists = await fs
-      .access(remindersFilePath)
-      .then(() => true)
-      .catch(() => false);
-
-    if (!fileExists) {
-      console.log(
-        `File pengingat tidak ditemukan di path: ${remindersFilePath}`
-      );
-      return; // Jika file tidak ada, keluar dari fungsi
-    }
-
-    // Baca file secara asinkron
-    const data = await fs.readFile(remindersFilePath, "utf-8");
-
-    if (!data.trim()) {
-      console.log("File pengingat kosong, tidak ada data untuk dimuat.");
-      return; // Jika file kosong, keluar dari fungsi
-    }
-
-    // Parse data JSON
-    const parsedReminders = JSON.parse(data);
-
-    // Validasi dan tambahkan ke Map reminders
-    parsedReminders.forEach((reminder) => {
-      if (
-        reminder.id &&
-        reminder.phoneNumber &&
-        reminder.reminderDateTime &&
-        reminder.message
-      ) {
-        reminders.set(reminder.id, reminder);
-      } else {
-        console.warn(
-          `Pengingat tidak valid ditemukan: ${JSON.stringify(reminder)}`
-        );
-      }
-    });
-
-    console.log("Pengingat berhasil dimuat dari file.");
-  } catch (error) {
-    console.error(`Gagal memuat pengingat dari file: ${error.message}`);
-  }
-};
-
-// Muat data pengingat saat aplikasi dijalankan
-loadRemindersFromFile()
-  .then(() => {
-    console.log("Pengingat selesai dimuat ke dalam Map.");
-  })
-  .catch((error) => {
-    console.error("Gagal memuat pengingat:", error.message);
-  });
 
 // simpan file pengingat terkirim di database/sent_reminders.json
 const sentRemindersFilePath = path.join(
@@ -213,95 +96,24 @@ const sentRemindersFilePath = path.join(
   "sent_reminders.json"
 );
 
-// Fungsi untuk menyimpan data ke file JSON
-const saveSentRemindersToFile = async (sentReminders) => {
-  try {
-    // Pastikan direktori tempat file berada sudah ada
-    const dirPath = path.dirname(sentRemindersFilePath);
-    await fs.mkdir(dirPath, { recursive: true }); // Membuat direktori jika belum ada
+(async () => {
+  contacts = await loadMapFromFile(
+    contactsFilePath,
+    (c) => c.id && c.name && c.phoneNumber
+  );
+  reminders = await loadMapFromFile(
+    remindersFilePath,
+    (r) => r.id && r.phoneNumber && r.reminderDateTime && r.message
+  );
+  sentReminders = await loadMapFromFile(
+    sentRemindersFilePath,
+    (s) => s.id && s.phoneNumber && s.reminderDateTime && s.message
+  );
+})();
 
-    // Konversi Map ke Array
-    const sentRemindersArray = [...sentReminders.values()];
-
-    // Simpan data ke file JSON
-    await fs.writeFile(
-      sentRemindersFilePath,
-      JSON.stringify(sentRemindersArray, null, 2) // Format JSON dengan indentasi
-    );
-
-    console.log(
-      `Pengingat terkirim berhasil disimpan di ${sentRemindersFilePath}`
-    );
-  } catch (error) {
-    console.error(
-      `Gagal menyimpan pengingat terkirim ke file: ${error.message}`
-    );
-  }
-};
-
-// Fungsi untuk memuat data dari file JSON (jika file ada)
-const loadSentRemindersFromFile = async () => {
-  try {
-    // Periksa apakah file ada
-    const fileExists = await fs
-      .access(sentRemindersFilePath)
-      .then(() => true)
-      .catch(() => false);
-
-    if (!fileExists) {
-      console.log(
-        `File pengingat terkirim tidak ditemukan di path: ${sentRemindersFilePath}`
-      );
-      return; // Jika file tidak ada, keluar dari fungsi
-    }
-
-    // Baca file secara asinkron
-    const data = await fs.readFile(sentRemindersFilePath, "utf-8");
-
-    if (!data.trim()) {
-      console.log(
-        "File pengingat terkirim kosong, tidak ada data untuk dimuat."
-      );
-      return; // Jika file kosong, keluar dari fungsi
-    }
-
-    // Parse data JSON
-    const parsedSentReminders = JSON.parse(data);
-
-    // Validasi dan tambahkan ke Map sentReminders
-    parsedSentReminders.forEach((sentReminder) => {
-      if (
-        sentReminder.id &&
-        sentReminder.phoneNumber &&
-        sentReminder.reminderDateTime &&
-        sentReminder.message
-      ) {
-        sentReminders.set(sentReminder.id, sentReminder);
-      } else {
-        console.warn(
-          `Pengingat terkirim tidak valid ditemukan: ${JSON.stringify(
-            sentReminder
-          )}`
-        );
-      }
-    });
-
-    console.log("Pengingat terkirim berhasil dimuat dari file.");
-  } catch (error) {
-    console.error(
-      `Gagal memuat pengingat terkirim dari file: ${error.message}`
-    );
-  }
-};
-
-// Muat data pengingat terkirim saat aplikasi dijalankan
-loadSentRemindersFromFile()
-  .then(() => {
-    console.log("Pengingat terkirim selesai dimuat ke dalam Map.");
-  })
-  .catch((error) => {
-    console.error("Gagal memuat pengingat terkirim:", error.message);
-  });
+await saveMapToFile(contacts, contactsFilePath);
+await saveMapToFile(reminders, remindersFilePath);
+await saveMapToFile(sentReminders, sentRemindersFilePath);
 
 // Middleware
 const authenticateToken = (req, res, next) => {
@@ -498,7 +310,7 @@ cron.schedule("*/1 * * * *", async () => {
         console.log(`Pesan berhasil dikirim ke ${reminder.phoneNumber}`);
         sentReminders.set(id, { ...reminder }); // Clone reminder to avoid reference issues
         reminders.delete(id);
-       
+
         // Reschedule reminder to next month
         const autoRescheduled = rescheduleReminderToNextMonth({ ...reminder }); // Clone reminder to avoid reference issues
         // await new Promise((resolve) => setTimeout(resolve, 30000));
@@ -861,7 +673,6 @@ app.get("/get-sent-reminders", authenticateToken, async (req, res) => {
     sentReminders: sentReminderList,
   });
 });
-
 
 // Endpoint untuk menjadwalkan ulang pengingat terkirim
 app.post("/reschedule-reminder/:id", authenticateToken, async (req, res) => {
