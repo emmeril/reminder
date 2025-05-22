@@ -373,7 +373,7 @@ app.post("/add-contact", authenticateToken, async (req, res) => {
   contacts.set(id, contact);
 
   // Simpan kontak ke file JSON
-  await saveContactsToFile(contacts);
+  await saveMapToFile(contacts, contactsFilePath);
 
   res.json({ message: "Kontak berhasil ditambahkan!", contact });
 });
@@ -450,7 +450,7 @@ app.put("/update-contact/:id", authenticateToken, async (req, res) => {
   contacts.set(contactId, updatedContact);
 
   // Simpan kontak ke file JSON
-  await saveContactsToFile(contacts);
+  await saveMapToFile(contacts, contactsFilePath);
 
   res.json({ message: "Kontak berhasil diperbarui!", contact: updatedContact });
 });
@@ -468,7 +468,7 @@ app.delete("/delete-contact/:id", authenticateToken, async (req, res) => {
   contacts.delete(id);
 
   // Simpan perubahan ke file JSON
-  await saveContactsToFile(contacts);
+  await saveMapToFile(contacts, contactsFilePath);
 
   res.json({ message: "Kontak berhasil dihapus!" });
 });
@@ -513,7 +513,7 @@ app.post("/add-reminder", authenticateToken, async (req, res) => {
   reminders.set(reminder.id, reminder);
 
   // Simpan pengingat ke file JSON
-  await saveRemindersToFile(reminders);
+  await saveMapToFile(reminders, remindersFilePath);
 
   res.json({ message: "Pengingat pembayaran berhasil ditambahkan!", reminder });
 });
@@ -610,7 +610,7 @@ app.put("/update-reminder/:id", authenticateToken, async (req, res) => {
   reminders.set(reminderId, updatedReminder);
 
   // Simpan pengingat ke file JSON
-  await saveRemindersToFile(reminders);
+  await saveMapToFile(reminders, remindersFilePath);
 
   res.json({
     message: "Pengingat berhasil diperbarui!",
@@ -631,7 +631,7 @@ app.delete("/delete-reminder/:id", authenticateToken, async (req, res) => {
   reminders.delete(id);
 
   // Simpan perubahan ke file JSON
-  await saveRemindersToFile(reminders);
+  await saveMapToFile(reminders, remindersFilePath);
 
   res.json({ message: "Pengingat berhasil dihapus!" });
 });
@@ -676,8 +676,8 @@ app.post("/reschedule-reminder/:id", authenticateToken, async (req, res) => {
   sentReminders.delete(id);
 
   // Simpan perubahan ke file JSON
-  await saveRemindersToFile(reminders);
-  await saveSentRemindersToFile(sentReminders);
+  await saveMapToFile(reminders, remindersFilePath);
+  await saveMapToFile(sentReminders, sentRemindersFilePath);
 
   res.json({
     message: "Pengingat berhasil dijadwalkan ulang!",

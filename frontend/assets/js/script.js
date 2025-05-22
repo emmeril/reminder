@@ -1,5 +1,5 @@
 // Define a base API URL
-const API_BASE_URL = "http://202.70.133.37:3000";
+const API_BASE_URL = "http://localhost:3000";
 // Define a configurable login page URL
 const LOGIN_PAGE_URL = "index.html";
 // List of protected pages
@@ -260,7 +260,7 @@ function reminderApp() {
       }
     },
 
-    // Start auto-refresh 
+    // Start auto-refresh
     startAutoRefresh(interval) {
       if (this.autoRefreshInterval) {
         clearInterval(this.autoRefreshInterval);
@@ -382,19 +382,11 @@ function reminderApp() {
     // Ambil data reminders
     async fetchReminders() {
       try {
-        // Validate pagination inputs
-        if (this.currentPage <= 0 || this.limit <= 0) {
-          throw new Error("Invalid pagination parameters.");
-        }
-
-        const response = await fetch(
-          `${API_BASE_URL}/get-reminders?page=${this.currentPage}&limit=${this.limit}`,
-          {
-            headers: {
-              Authorization: `Bearer ${this.token}`,
-            },
-          }
-        );
+        const response = await fetch(`${API_BASE_URL}/get-all-reminders`, {
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+        });
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -405,16 +397,16 @@ function reminderApp() {
 
         const result = await response.json();
 
-        // Ensure response has valid data
-        this.reminders = Array.isArray(result.reminders)
-          ? result.reminders.sort(
+        // Gunakan result.allReminders, bukan result.reminders
+        this.allReminders = Array.isArray(result.allReminders)
+          ? result.allReminders.sort(
               (a, b) =>
                 new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
             )
           : [];
 
-        this.totalPages = result.totalPagesReminders || 1;
-        console.log("Data pengingat berhasil diambil:", this.reminders);
+        this.totalPages = Math.ceil(this.allReminders.length / this.limit);
+        this.paginateReminders();
       } catch (error) {
         console.error("Error saat mengambil pengingat:", error);
         this.showToast(
@@ -424,51 +416,30 @@ function reminderApp() {
       }
     },
 
-    async fetchAllReminders() {
-      try {
-        // Set loading state
-        this.isLoadingAllReminders = true;
+    paginateReminders() {
+      const start = (this.currentPage - 1) * this.limit;
+      const end = this.currentPage * this.limit;
+      this.reminders = this.allReminders.slice(start, end);
+    },
 
-        // Send API request for all contacts (no pagination)
-        const response = await fetch(`${API_BASE_URL}/get-all-reminders`, {
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-          },
-        });
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+        this.paginateReminders();
+      }
+    },
 
-        // Check if the response is successful
-        if (!response.ok) {
-          let errorMessage = "Failed to fetch all reminders";
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            // Ignore JSON parsing errors
-          }
-          throw new Error(errorMessage);
-        }
+    prevPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+        this.paginateReminders();
+      }
+    },
 
-        // Parse response JSON
-        const result = await response.json();
-
-        // Update contacts data with all contacts
-        this.allReminders = Array.isArray(result.allReminders)
-          ? result.allReminders.sort(
-              (a, b) =>
-                new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
-            )
-          : [];
-
-        console.log("All contacts fetched successfully:", this.allReminders);
-      } catch (error) {
-        console.error("Failed to fetch allReminders:", error);
-        this.showToast(
-          error.message || "Terjadi kesalahan saat mengambil semua pengingat",
-          "danger"
-        );
-      } finally {
-        // Reset loading state
-        this.isLoadingAllReminders = false;
+    goToPage(page) {
+      if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+        this.currentPage = page;
+        this.paginateReminders();
       }
     },
 
@@ -530,7 +501,7 @@ function reminderApp() {
 
         // Refresh reminders list and reset form
         await this.fetchReminders();
-        await this.fetchAllReminders(); // Add this line
+        this.paginateReminders();
         this.resetForm();
       } catch (error) {
         console.error("Error saat menyimpan pengingat:", error);
@@ -683,105 +654,68 @@ function reminderApp() {
     // Fetch data kontak dengan pagination yang benar
     async fetchContacts() {
       try {
-        // Validate pagination inputs
-        if (this.currentPageContacts <= 0 || this.limitContacts <= 0) {
-          throw new Error("Invalid pagination parameters.");
-        }
-
-        // Set loading state
-        this.isLoadingContacts = true;
-
-        // Send API request
-        const response = await fetch(
-          `${API_BASE_URL}/get-contacts?page=${this.currentPageContacts}&limit=${this.limitContacts}`,
-          {
-            headers: {
-              Authorization: `Bearer ${this.token}`,
-            },
-          }
-        );
-
-        // Check if the response is successful
-        if (!response.ok) {
-          let errorMessage = "Failed to fetch contacts";
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            // Ignore JSON parsing errors
-          }
-          throw new Error(errorMessage);
-        }
-
-        // Parse response JSON
-        const result = await response.json();
-
-        // Update contacts data
-        this.contacts = Array.isArray(result.contacts)
-          ? result.contacts.sort((a, b) =>
-              a.name.localeCompare(b.name, "id", { sensitivity: "base" })
-            )
-          : [];
-
-        this.totalPagesContacts = result.totalPagesContacts || 1;
-
-        console.log("Contacts fetched successfully:", this.contacts);
-      } catch (error) {
-        console.error("Failed to fetch contacts:", error);
-        this.showToast(
-          error.message || "Terjadi kesalahan saat mengambil daftar kontak",
-          "danger"
-        );
-      } finally {
-        // Reset loading state
-        this.isLoadingContacts = false;
-      }
-    },
-
-    async fetchAllContacts() {
-      try {
-        // Set loading state
-        this.isLoadingAllContacts = true;
-
-        // Send API request for all contacts (no pagination)
         const response = await fetch(`${API_BASE_URL}/get-all-contacts`, {
           headers: {
             Authorization: `Bearer ${this.token}`,
           },
         });
 
-        // Check if the response is successful
         if (!response.ok) {
-          let errorMessage = "Failed to fetch all contacts";
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            // Ignore JSON parsing errors
-          }
-          throw new Error(errorMessage);
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Gagal mengambil daftar kontak."
+          );
         }
 
-        // Parse response JSON
         const result = await response.json();
 
-        // Update contacts data with all contacts
         this.allContacts = Array.isArray(result.allContacts)
           ? result.allContacts.sort((a, b) =>
               a.name.localeCompare(b.name, "id", { sensitivity: "base" })
             )
           : [];
 
-        console.log("All contacts fetched successfully:", this.allContacts);
+        this.totalPagesContacts = Math.ceil(
+          this.allContacts.length / this.limitContacts
+        );
+        this.paginateContacts();
       } catch (error) {
-        console.error("Failed to fetch all contacts:", error);
+        console.error("Failed to fetch contacts:", error);
         this.showToast(
-          error.message || "Terjadi kesalahan saat mengambil semua kontak",
+          error.message || "Terjadi kesalahan saat mengambil daftar kontak.",
           "danger"
         );
-      } finally {
-        // Reset loading state
-        this.isLoadingAllContacts = false;
+      }
+    },
+
+    paginateContacts() {
+      const start = (this.currentPageContacts - 1) * this.limitContacts;
+      const end = this.currentPageContacts * this.limitContacts;
+      this.contacts = this.allContacts.slice(start, end);
+    },
+
+    nextPageContacts() {
+      if (this.currentPageContacts < this.totalPagesContacts) {
+        this.currentPageContacts++;
+        this.paginateContacts();
+      }
+    },
+
+    prevPageContacts() {
+      if (this.currentPageContacts > 1) {
+        this.currentPageContacts--;
+        this.paginateContacts();
+      }
+    },
+
+    goToPageContacts(page) {
+      if (
+        page >= 1 &&
+        page <= this.totalPagesContacts &&
+        page !== this.currentPageContacts
+      ) {
+        this.currentPageContacts = page;
+        this.paginateContacts();
       }
     },
 
@@ -883,7 +817,7 @@ function reminderApp() {
 
         // Refresh the contact list and reset the form
         await this.fetchContacts();
-        await this.fetchAllContacts(); // Add this line
+        this.paginateContacts();
         this.resetContactForm();
       } catch (error) {
         console.error("Failed to submit contact form:", error);
@@ -1047,56 +981,32 @@ function reminderApp() {
 
     async fetchSentReminders() {
       try {
-        // Validate pagination inputs
-        if (
-          this.currentPageSentReminders <= 0 ||
-          this.limitSentReminders <= 0
-        ) {
-          throw new Error("Invalid pagination parameters.");
-        }
+        const response = await fetch(`${API_BASE_URL}/get-sent-reminders`, {
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+        });
 
-        // Retrieve token from centralized state or localStorage
-        const token = this.token || localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Authorization token is missing. Please log in.");
-        }
-
-        // Send API request
-        const response = await fetch(
-          `${API_BASE_URL}/get-sent-reminders?page=${this.currentPageSentReminders}&limit=${this.limitSentReminders}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        // Check response status
         if (!response.ok) {
-          let errorMessage = "Failed to fetch sent reminders.";
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            // Ignore JSON parsing errors
-          }
-          throw new Error(errorMessage);
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Gagal mengambil pengingat terkirim."
+          );
         }
 
-        // Parse response JSON
         const data = await response.json();
 
-        // Update state with fetched data
-        this.sentReminders = Array.isArray(data.sentReminders)
+        this.allSentReminders = Array.isArray(data.sentReminders)
           ? data.sentReminders.sort(
               (a, b) =>
                 new Date(b.reminderDateTime) - new Date(a.reminderDateTime)
             )
           : [];
 
-        this.totalPagesSentReminders = data.totalPagesSentReminders || 1;
-
-        console.log("Sent reminders fetched successfully:", this.sentReminders);
+        this.totalPagesSentReminders = Math.ceil(
+          this.allSentReminders.length / this.limitSentReminders
+        );
+        this.paginateSentReminders();
       } catch (error) {
         console.error("Failed to fetch sent reminders:", error);
         this.showToast(
@@ -1104,6 +1014,38 @@ function reminderApp() {
             "Terjadi kesalahan saat mengambil pengingat terkirim.",
           "danger"
         );
+      }
+    },
+
+    paginateSentReminders() {
+      const start =
+        (this.currentPageSentReminders - 1) * this.limitSentReminders;
+      const end = this.currentPageSentReminders * this.limitSentReminders;
+      this.sentReminders = this.allSentReminders.slice(start, end);
+    },
+
+    nextPageSentReminders() {
+      if (this.currentPageSentReminders < this.totalPagesSentReminders) {
+        this.currentPageSentReminders++;
+        this.paginateSentReminders();
+      }
+    },
+
+    prevPageSentReminders() {
+      if (this.currentPageSentReminders > 1) {
+        this.currentPageSentReminders--;
+        this.paginateSentReminders();
+      }
+    },
+
+    goToPageSentReminders(page) {
+      if (
+        page >= 1 &&
+        page <= this.totalPagesSentReminders &&
+        page !== this.currentPageSentReminders
+      ) {
+        this.currentPageSentReminders = page;
+        this.paginateSentReminders();
       }
     },
 
