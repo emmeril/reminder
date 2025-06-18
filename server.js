@@ -39,20 +39,6 @@ let isAuthenticated = false;
 // Simpan secret key JWT di .env
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Rate limiting to prevent abuse
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
-// Slow down excessive requests
-const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 50, // allow 50 requests per windowMs before slowing down
-  delayMs: () => 500, // add 500ms delay per request after exceeding limit
-});
-app.use(speedLimiter);
-
 // Fungsi untuk menyimpan ke file JSON
 const saveMapToFile = async (map, filePath) => {
   try {
