@@ -178,11 +178,11 @@ const reminderSchema = Joi.object({
 
 // Membuat instance klien WhatsApp
 const whatsappClient = new Client({
-    authStrategy: new LocalAuth(), // Simpan sesi login secara lokal
-    puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'], // ✅ Fix error root user
-        headless: true
-    }
+  authStrategy: new LocalAuth(), // Simpan sesi login secara lokal
+  puppeteer: {
+    args: ["--no-sandbox", "--disable-setuid-sandbox"], // ✅ Fix error root user
+    headless: true,
+  },
 });
 
 // Menampilkan QR code untuk login
@@ -676,21 +676,37 @@ app.post("/reschedule-reminder/:id", authenticateToken, async (req, res) => {
 });
 
 // Endpoint untuk mendapatkan status WhatsApp
+// app.get("/whatsapp-status", authenticateToken, (req, res) => {
+//   if (isReady) {
+//     return res.json({
+//       message: "WhatsApp client is ready and connected.",
+//       status: "ready",
+//     });
+//   }
+
+//   if (!qrCodeData) {
+//     return res.json({
+//       message: "WhatsApp client is not ready.",
+//       status: "not_ready",
+//     });
+//   }
+// });
+
 app.get("/whatsapp-status", authenticateToken, (req, res) => {
   try {
-    // Validate the state
-    const status = {
-      authenticated: Boolean(isAuthenticated),
-      qrCode: isAuthenticated ? null : qrCodeData || null, // Provide QR code only if not authenticated
-    };
-
-    // Respond with the WhatsApp status
-    res.status(200).json(status);
-  } catch (error) {
-    console.error("Error in /whatsapp-status route:", error);
-    res.status(500).json({
-      message: "Failed to retrieve WhatsApp status. Please try again later.",
+     if (isReady) {
+    return res.json({
+      message: "WhatsApp client is ready and connected.",
+      status: "ready",
     });
+  }
+  } catch (error) {
+     if (!qrCodeData) {
+    return res.json({
+      message: "WhatsApp client is not ready.",
+      status: "not_ready",
+    });
+  }
   }
 });
 
