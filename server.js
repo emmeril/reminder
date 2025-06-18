@@ -33,6 +33,7 @@ let reminders = new Map();
 let sentReminders = new Map();
 let contacts = new Map();
 let qrCodeData = null;
+let isReady = false;
 let isAuthenticated = false;
 
 // Simpan secret key JWT di .env
@@ -166,54 +167,43 @@ const reminderSchema = Joi.object({
 });
 
 // Ensure necessary dependencies are installed on Ubuntu Server 20.04
-if (process.platform === "linux") {
-  try {
-    execSync("apt-get update && apt-get install -y libgbm-dev");
-    console.log("Dependencies installed successfully.");
-  } catch (error) {
-    console.error("Failed to install dependencies:", error);
-  }
-}
+// if (process.platform === "linux") {
+//   try {
+//     execSync("apt-get update && apt-get install -y libgbm-dev");
+//     console.log("Dependencies installed successfully.");
+//   } catch (error) {
+//     console.error("Failed to install dependencies:", error);
+//   }
+// }
 
 // Membuat instance klien WhatsApp
 const whatsappClient = new Client({
-  authStrategy: new LocalAuth(), // Menyimpan sesi secara lokal
-  puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  },
+    authStrategy: new LocalAuth(), // Simpan sesi login secara lokal
+    puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox'], // ✅ Fix error root user
+        headless: true
+    }
 });
 
 // Menampilkan QR code untuk login
 whatsappClient.on("qr", (qr) => {
-  const timestamp = new Date().toISOString();
-
-  // Update global state
   qrCodeData = qr;
-  isAuthenticated = false;
-
-  // Log QR code with timestamp
-  console.log(`[${timestamp}] QR code untuk login dihasilkan.`);
-
-  // Generate QR code in the console
-  try {
-    qrcode.generate(qr, { small: true });
-  } catch (error) {
-    console.error(
-      `[${timestamp}] Gagal menghasilkan QR code: ${error.message}`
-    );
-  }
+  isReady = false;
+  console.log("📲 QR tersedia: buka http://localhost:3000/qr");
 });
 
 // Saat klien siap digunakan
 whatsappClient.on("ready", () => {
-  console.log("Bot WhatsApp siap digunakan dan terhubung ke akun WhatsApp.");
-  isAuthenticated = true;
+  isReady = true;
   qrCodeData = null;
+  console.clear();
+  console.log("✅ Bot sudah terhubung ke WhatsApp.");
 });
 
 whatsappClient.on("disconnected", (reason) => {
-  console.error(`Bot WhatsApp terputus: ${reason}`);
-  isAuthenticated = false;
+  console.log("❌ WhatsApp disconnected:", reason);
+  fs.rmSync(".wwebjs_auth", { recursive: true, force: true });
+  process.exit(); // atau restart otomatis
 });
 
 whatsappClient.on("auth_failure", (msg) => {
@@ -707,6 +697,69 @@ app.get("/whatsapp-status", authenticateToken, (req, res) => {
 // Handle 404 untuk endpoint yang tidak ditemukan
 app.use((req, res) => {
   res.status(404).json({ message: "Endpoint tidak ditemukan" });
+});
+
+app.get("/qr", (req, res) => {
+  if (isReady) {
+    return res.send(`
+      <html>
+        <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;text-align:center;">
+          <div>
+            <h2>✅ Bot sudah terhubung ke WhatsApp.</h2>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+
+  if (!qrCodeData) {
+    return res.send(`
+      <html>
+        <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;text-align:center;">
+          <div>
+            <h2>⏳ Menunggu QR Code...</h2>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
+    qrCodeData
+  )}`;
+  res.send(`
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>QR Login Bot</title>
+      <style>
+        body {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          font-family: sans-serif;
+          text-align: center;
+          margin: 0;
+        }
+        img {
+          max-width: 90vw;
+          height: auto;
+        }
+        h2, p {
+          margin: 10px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div>
+        <h2>🔐 Scan QR WhatsApp:</h2>
+        <img src="${qrUrl}" />
+        <p>QR akan otomatis hilang setelah login.</p>
+      </div>
+    </body>
+  </html>
+`);
 });
 
 // Menjalankan server
