@@ -699,7 +699,7 @@ app.use((req, res) => {
   res.status(404).json({ message: "Endpoint tidak ditemukan" });
 });
 
-app.get("/qr", (req, res) => {
+app.get("/qr", async (req, res) => {
   if (isReady) {
     return res.send(`
       <html>
